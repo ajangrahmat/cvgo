@@ -1,4 +1,4 @@
-"""Contoh 6: mengirim status deteksi wajah ke Arduino."""
+"""Example 6: send face detection status to Arduino."""
 
 import cvgo as go
 

@@ -1,32 +1,32 @@
-"""Contoh 8: proyek akhir Driver Monitor yang tetap dapat dipelajari."""
+"""Example 8: final driver monitor project that is still easy to study."""
 
 import cvgo as go
 
 
-# Threshold deteksi
+# Detection thresholds
 EAR_THRESHOLD = 0.20
 YAW_NORMAL = 0.50
 YAW_LIMIT = 0.12
 PITCH_NORMAL = 0.50
 PITCH_LIMIT = 0.055
 
-# Komponen
+# Components
 camera = go.Camera()
 landmarker = go.FaceLandmarks()
 arduino = go.Serial()
 alarm = go.Alarm()
 fps_counter = go.FPS()
 
-# Timer kondisi
+# Condition timers
 eye_timer = go.Timer(1.5)
 turn_timer = go.Timer(0.7)
 down_timer = go.Timer(0.7)
 missing_timer = go.Timer(2.0)
 
-# Penghalus nilai mata
+# Eye value smoother
 ear_smoother = go.Smoother()
 
-# Status serial terakhir
+# Last serial status
 last_mask = None
 
 while True:
@@ -93,16 +93,16 @@ while True:
     alerts = []
 
     if drowsy:
-        alerts.append("NGANTUK")
+        alerts.append("DROWSY")
 
     if looking_away:
-        alerts.append("NOLEH")
+        alerts.append("LOOKING_AWAY")
 
     if head_down:
-        alerts.append("TUNDUK")
+        alerts.append("HEAD_DOWN")
 
     if face_missing:
-        alerts.append("WAJAH HILANG")
+        alerts.append("FACE_MISSING")
 
     status = " | ".join(alerts) if alerts else "NORMAL"
     color = (0, 0, 255) if alerts else (0, 255, 0)

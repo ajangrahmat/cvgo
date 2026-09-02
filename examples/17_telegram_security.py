@@ -1,4 +1,4 @@
-"""Contoh 17: kirim foto Telegram saat orang terdeteksi."""
+"""Example 17: send a Telegram photo when a person is detected."""
 
 import cvgo as go
 
@@ -21,14 +21,14 @@ while True:
     for person in people:
         person.draw(frame, color=(0, 0, 255))
 
-    status = "ORANG TERDETEKSI" if alert else "AMAN"
+    status = "PERSON DETECTED" if alert else "SAFE"
     color = (0, 0, 255) if alert else (0, 255, 0)
     go.put_text(frame, f"Status: {status}", color=color)
 
     if alert and not notified:
         sent = telegram.send_photo(
             frame,
-            f"Peringatan: {len(people)} orang terdeteksi.",
+            f"Warning: {len(people)} person(s) detected.",
             key="security",
         )
         if not sent:

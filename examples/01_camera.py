@@ -1,4 +1,4 @@
-"""Contoh 1: membuka dan menampilkan kamera."""
+"""Example 1: open and display the camera."""
 
 import cvgo as go
 

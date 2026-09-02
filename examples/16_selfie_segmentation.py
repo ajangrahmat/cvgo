@@ -1,4 +1,4 @@
-"""Contoh 16: blur latar belakang webcam."""
+"""Example 16: blur the webcam background."""
 
 import cvgo as go
 

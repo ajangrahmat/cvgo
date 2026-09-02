@@ -1,4 +1,4 @@
-"""Contoh 10: pelacakan pose tubuh."""
+"""Example 10: body pose tracking."""
 
 import cvgo as go
 
@@ -19,7 +19,7 @@ while True:
     if pose:
         pose.draw(frame)
 
-    status = "POSE TERDETEKSI" if person_detected else "TIDAK ADA POSE"
+    status = "POSE DETECTED" if person_detected else "NO POSE"
     color = (0, 255, 0) if person_detected else (0, 0, 255)
 
     go.put_text(frame, status, color=color)

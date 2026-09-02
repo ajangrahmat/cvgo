@@ -1,4 +1,4 @@
-"""Contoh 3: menampilkan landmark wajah."""
+"""Example 3: display face landmarks."""
 
 import cvgo as go
 

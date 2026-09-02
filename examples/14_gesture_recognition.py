@@ -1,4 +1,4 @@
-"""Contoh 14: pengenalan gesture tangan."""
+"""Example 14: hand gesture recognition."""
 
 import cvgo as go
 

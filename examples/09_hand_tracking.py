@@ -1,4 +1,4 @@
-"""Contoh 9: hand tracking, label tangan, dan FPS."""
+"""Example 9: hand tracking, hand labels, and FPS."""
 
 import cvgo as go
 

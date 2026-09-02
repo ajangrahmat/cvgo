@@ -1,4 +1,4 @@
-"""Contoh 7: deteksi kantuk berdasarkan EAR dan durasi."""
+"""Example 7: detect drowsiness based on EAR and duration."""
 
 import cvgo as go
 
@@ -26,7 +26,7 @@ while True:
         eyes_closed = ear < EAR_THRESHOLD
         drowsy = eye_timer.check(eyes_closed)
 
-        status = "NGANTUK" if drowsy else "NORMAL"
+        status = "DROWSY" if drowsy else "NORMAL"
         color = (0, 0, 255) if drowsy else (0, 255, 0)
 
         go.put_text(frame, f"Status: {status}", color=color)

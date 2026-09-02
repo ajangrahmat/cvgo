@@ -1,4 +1,4 @@
-"""Contoh 2: mendeteksi wajah."""
+"""Example 2: detect faces."""
 
 import cvgo as go
 

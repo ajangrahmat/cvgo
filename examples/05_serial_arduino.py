@@ -1,4 +1,4 @@
-"""Contoh 5: mengirim data ke Arduino."""
+"""Example 5: send data to Arduino."""
 
 import cvgo as go
 

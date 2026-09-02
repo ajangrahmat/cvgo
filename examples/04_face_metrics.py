@@ -1,4 +1,4 @@
-"""Contoh 4: membaca EAR, yaw, dan pitch."""
+"""Example 4: read EAR, yaw, and pitch."""
 
 import cvgo as go
 

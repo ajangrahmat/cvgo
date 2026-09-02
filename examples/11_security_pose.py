@@ -1,4 +1,4 @@
-"""Contoh 11: alarm keamanan sederhana dari keberadaan pose."""
+"""Example 11: simple security alarm based on pose presence."""
 
 import cvgo as go
 
@@ -21,7 +21,7 @@ while True:
     if pose:
         pose.draw(frame)
 
-    status = "PERINGATAN" if alert else "AMAN"
+    status = "ALERT" if alert else "SAFE"
     color = (0, 0, 255) if alert else (0, 255, 0)
 
     go.put_text(frame, f"Status: {status}", color=color)

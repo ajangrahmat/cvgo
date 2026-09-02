@@ -1,4 +1,4 @@
-"""Contoh 12: object detection umum."""
+"""Example 12: general object detection."""
 
 import cvgo as go
 

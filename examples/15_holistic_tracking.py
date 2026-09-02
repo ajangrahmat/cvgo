@@ -1,4 +1,4 @@
-"""Contoh 15: wajah, pose, dan tangan dalam satu pipeline."""
+"""Example 15: face, pose, and hands in one pipeline."""
 
 import cvgo as go
 
