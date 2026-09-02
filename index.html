@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CVGO is a simple computer vision toolkit for Python, OpenCV, and MediaPipe.">
+  <title>CVGO | Simple Computer Vision for Python</title>
+  <style>
+    :root{--ink:#09234f;--muted:#5d6d83;--blue:#087cf5;--green:#50c91c;--paper:#f7fbff;--line:#dbe7f3;--white:#fff}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:var(--paper);font-family:"Trebuchet MS","Segoe UI",sans-serif;line-height:1.6}a{color:inherit}.wrap{width:min(1100px,calc(100% - 40px));margin:auto}
+    header{position:sticky;top:0;z-index:2;border-bottom:1px solid var(--line);background:#fffffff2;backdrop-filter:blur(12px)}.nav{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}.brand img{display:block;width:150px}nav{display:flex;gap:24px;font-size:.92rem;font-weight:700}nav a{text-decoration:none}nav a:hover{color:var(--blue)}
+    .hero{padding:88px 0 96px;background:radial-gradient(circle at 88% 20%,#50c91c2e,transparent 25%),radial-gradient(circle at 8% 12%,#087cf52b,transparent 28%),var(--white)}.hero-grid{display:grid;grid-template-columns:1.15fr .85fr;align-items:center;gap:72px}.eyebrow{color:#075bc4;font-size:.8rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}h1,h2{line-height:1.08;letter-spacing:0}h1{max-width:680px;margin:16px 0 22px;font-size:clamp(2.8rem,7vw,5.6rem)}h1 span{color:var(--blue)}.lead{max-width:600px;margin:0;color:var(--muted);font-size:1.2rem}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}.button{display:inline-block;padding:12px 18px;border:2px solid var(--blue);border-radius:6px;color:var(--white);background:var(--blue);font-weight:800;text-decoration:none}.button:hover{background:#075bc4;border-color:#075bc4}.button.secondary{color:var(--ink);background:transparent;border-color:var(--line)}.hero-mark{display:grid;place-items:center;min-height:290px;border-left:5px solid var(--green);padding:28px;background:#edf7ff}.hero-mark img{width:min(100%,390px)}
+    section{padding:76px 0}.section-heading{max-width:700px;margin-bottom:30px}h2{margin:0 0 12px;font-size:2.2rem}.section-heading p,.doc-block p{margin:0;color:var(--muted)}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.feature,.doc-block{padding:24px;border:1px solid var(--line);background:var(--white)}.feature strong{display:block;margin-bottom:8px;color:#075bc4;font-size:1.1rem}.feature p{margin:0;color:var(--muted)}.install{color:var(--white);background:var(--ink)}.install h2{color:var(--white)}.install p{color:#c8d7e9}pre{overflow-x:auto;margin:18px 0;padding:18px;border:1px solid #29436a;background:#061936;color:#d9f4ff}code{font-family:Consolas,monospace}.topics{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0;list-style:none}.topics a{display:block;padding:16px 18px;border:1px solid var(--line);background:var(--white);font-weight:700;text-decoration:none}.topics a:hover{border-color:var(--blue);color:var(--blue)}.docs{background:#eef6fc}.doc-block{max-width:920px;margin:0 auto 24px}.doc-block h3{margin:0 0 14px;font-size:1.45rem}.doc-block pre{margin:16px 0}.doc-block p+p{margin-top:14px}table{width:100%;border-collapse:collapse;margin:18px 0;text-align:left}th,td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}th{color:#075bc4;font-size:.82rem;text-transform:uppercase}.example-list{columns:2;margin:0;padding-left:22px;color:var(--muted)}footer{padding:28px 0;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+    @media(max-width:760px){.wrap{width:min(100% - 28px,600px)}.nav{min-height:64px}nav{gap:12px;font-size:.8rem}.hero{padding:56px 0 64px}.hero-grid,.feature-grid{grid-template-columns:1fr;gap:32px}.hero-mark{min-height:190px}section{padding:56px 0}.topics{grid-template-columns:1fr}.doc-block{padding:20px 16px}table{display:block;overflow-x:auto;white-space:nowrap}.example-list{columns:1}}
+  </style>
+</head>
+<body>
+  <header><div class="wrap nav"><a class="brand" href="#top" aria-label="CVGO home"><img src="logo-cvgo.png" alt="CVGO"></a><nav aria-label="Main navigation"><a href="#features">Features</a><a href="#install">Install</a><a href="#documentation">Docs</a></nav></div></header>
+  <main id="top">
+    <section class="hero"><div class="wrap hero-grid"><div><div class="eyebrow">Open source Python toolkit</div><h1>Computer vision that keeps your code <span>visible.</span></h1><p class="lead">CVGO simplifies the repetitive parts of OpenCV and MediaPipe while keeping the main program flow easy to understand.</p><div class="actions"><a class="button" href="#documentation">Read the documentation</a><a class="button secondary" href="#topics">Browse topics</a></div></div><div class="hero-mark"><img src="logo-cvgo.png" alt="CVGO computer vision logo"></div></div></section>
+    <section id="features"><div class="wrap"><div class="section-heading"><h2>One clear API for camera projects.</h2><p>Start with sensible defaults, then customize only the parts your project needs.</p></div><div class="feature-grid"><article class="feature"><strong>Track what matters</strong><p>Face, hand, pose, holistic, gesture, and object detection in familiar Python classes.</p></article><article class="feature"><strong>Build real projects</strong><p>Camera display, segmentation, drowsiness monitoring, Arduino, and Telegram integrations.</p></article><article class="feature"><strong>Learn by running</strong><p>Small examples keep the loop visible so you can inspect frames and make decisions yourself.</p></article></div></div></section>
+    <section class="install" id="install"><div class="wrap"><div class="section-heading"><h2>Get started in a minute.</h2><p>CVGO supports Python 3.10, 3.11, and 3.12.</p></div><pre><code>py -3.11 -m venv .venv-cvgo
+.venv-cvgo\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install cvgo</code></pre></div></section>
+    <section id="topics"><div class="wrap"><div class="section-heading"><h2>Complete documentation.</h2><p>All API patterns, defaults, integrations, and development notes are embedded below. This page does not open Python files or README files.</p></div><ul class="topics"><li><a href="#camera">Camera and GUI</a></li><li><a href="#face">Face and metrics</a></li><li><a href="#hands">Hands and pose</a></li><li><a href="#objects">Objects and gestures</a></li><li><a href="#holistic">Holistic and segmentation</a></li><li><a href="#driver">Driver monitor</a></li><li><a href="#arduino">Arduino serial</a></li><li><a href="#telegram">Telegram alerts</a></li></ul></div></section>
+    <section id="documentation" class="docs"><div class="wrap">
+      <article class="doc-block"><h3>Installation, import, and feature map</h3><p>CVGO V1 pins CVGO 0.1.1, OpenCV Contrib 4.11.0.86, NumPy 1.26.4, and MediaPipe 0.10.21. Use <code>opencv-contrib-python</code>; do not install another OpenCV variant alongside it. MediaPipe object and gesture models download on first use and are cached afterward.</p><pre><code>pip install cvgo
+import cvgo as go
+from cvgo import Camera, ObjectDetector, Telegram</code></pre><table><thead><tr><th>Feature</th><th>Main API</th><th>Output</th></tr></thead><tbody><tr><td>Camera and GUI</td><td><code>Camera</code></td><td>OpenCV frames</td></tr><tr><td>Face</td><td><code>FaceDetector</code>, <code>FaceLandmarks</code></td><td>Boxes, landmarks, metrics</td></tr><tr><td>Hands and pose</td><td><code>HandTracker</code>, <code>PoseTracker</code></td><td>21 / 33 landmarks</td></tr><tr><td>Holistic</td><td><code>HolisticTracker</code></td><td>Face, pose, both hands</td></tr><tr><td>Gesture and objects</td><td><code>GestureRecognizer</code>, <code>ObjectDetector</code></td><td>Labels, scores, boxes</td></tr><tr><td>Segmentation</td><td><code>SelfieSegmenter</code></td><td>Human mask and background</td></tr><tr><td>Monitoring and I/O</td><td><code>Timer</code>, <code>Serial</code>, <code>Telegram</code></td><td>Conditions, serial, alerts</td></tr></tbody></table></article>
+      <article class="doc-block"><h3>Python style and defaults</h3><p>Classes use <code>PascalCase</code>, methods use <code>snake_case</code>, and constants use <code>UPPER_CASE</code>. Use <code>read_fps()</code>, not <code>readFPS()</code>; the short form is <code>fps.read()</code>.</p><pre><code>camera = go.Camera()
+faces = go.FaceDetector()
+landmarks = go.FaceLandmarks()
+hands = go.HandTracker()
+pose = go.PoseTracker()
+objects = go.ObjectDetector()
+arduino = go.Serial()
+timer = go.Timer()
+
+camera = go.Camera(1, width=1280, height=720)
+hands = go.HandTracker(max_hands=1, detection_confidence=0.7)
+pose = go.PoseTracker(model_complexity=0)
+objects = go.ObjectDetector(confidence=0.7, allow=["person"])
+arduino = go.Serial("COM5", baud=115200)
+telegram = go.Telegram(cooldown=60)</code></pre><p>Defaults are camera 0, one face, two hands, one pose, one holistic person with 543 landmarks, ten objects at confidence 0.5, landscape segmentation, automatic serial at 9600 baud, Telegram cooldown 30 seconds, Timer one second, and Smoother alpha 0.45.</p></article>
+      <article class="doc-block" id="camera"><h3>Camera and GUI</h3><p>The default backend is OpenCV <code>CAP_ANY</code>. Press <code>q</code> to quit.</p><pre><code>camera = go.Camera()
+while True:
+    frame = camera.read()
+    if frame is None:
+        break
+    if not camera.show(frame):
+        break
+camera.close()</code></pre></article>
+      <article class="doc-block" id="face"><h3>Face detection, landmarks, and metrics</h3><pre><code>detector = go.FaceDetector()
+faces = detector.detect(frame)
+for face in faces:
+    face.draw(frame)
+detector.close()
+
+landmarker = go.FaceLandmarks()
+faces = landmarker.detect(frame)
+if faces:
+    face = faces[0]
+    ear = go.eye_ratio(face)
+    yaw = go.yaw_ratio(face)
+    pitch = go.pitch_ratio(face)
+    go.put_text(frame, f"EAR: {ear:.3f}")
+    face.draw(frame)
+landmarker.close()</code></pre></article>
+      <article class="doc-block" id="hands"><h3>Hand and pose tracking</h3><pre><code>tracker = go.HandTracker()
+hands = tracker.detect(frame)
+for hand in hands:
+    hand.draw(frame)
+tip = hand.point(go.HandLandmark.INDEX_FINGER_TIP)
+x, y = tip.pixel(frame)
+tracker.close()
+
+pose_tracker = go.PoseTracker()
+pose = pose_tracker.detect(frame)
+if pose:
+    pose.draw(frame)
+    shoulder = pose.point(go.PoseLandmark.LEFT_SHOULDER)
+    world_points = pose.world_points
+pose_tracker.close()</code></pre><p>A Hand has 21 points, handedness, confidence, <code>box()</code>, and raw results. Webcam labels are adjusted automatically; use <code>mirrored=True</code> for an already flipped frame. A pose is one visible body, not a multi-person counter.</p></article>
+      <article class="doc-block"><h3>FPS and condition timer</h3><pre><code>fps = go.FPS()
+value = fps.read()
+fast_fps = go.FPS(update_every=0.5)
+
+eye_timer = go.Timer(1.5)
+eyes_closed = ear &lt; 0.20
+drowsy = eye_timer.check(eyes_closed)
+# Timer resets when the condition becomes false</code></pre></article>
+      <article class="doc-block" id="objects"><h3>Object detection and gestures</h3><pre><code>detector = go.ObjectDetector()
+objects = detector.detect(frame)
+for item in objects:
+    item.draw(frame)
+# label, score, box, is_person, raw
+detector.close()
+go.ObjectDetector(allow=["person"])
+go.ObjectDetector("models/custom_model.tflite")
+go.download_model("object_detection")
+go.ObjectDetector(stream=False)
+
+recognizer = go.GestureRecognizer()
+gestures = recognizer.detect(frame)
+for gesture in gestures:
+    gesture.draw(frame)
+    print(gesture.hand, gesture.score)
+recognizer.close()
+# Closed_Fist, Open_Palm, Pointing_Up, Thumb_Down,
+# Thumb_Up, Victory, ILoveYou</code></pre><p>EfficientDet-Lite0 is cached after its first download. Gesture recognition also supports <code>stream=False</code> for static images.</p></article>
+      <article class="doc-block" id="holistic"><h3>Holistic tracking and selfie segmentation</h3><pre><code>tracker = go.HolisticTracker()
+result = tracker.detect(frame)
+result.draw(frame)
+face = result.face
+pose = result.pose
+left_hand = result.left_hand
+right_hand = result.right_hand
+tracker.close()
+
+segmenter = go.SelfieSegmenter()
+result = segmenter.segment(frame)
+blurred = result.blur(frame)
+colored = result.apply(frame, background=(40, 40, 40))
+with_image = result.apply(frame, background=background_image)
+segmenter.close()</code></pre></article>
+      <article class="doc-block" id="driver"><h3>Drowsiness and driver monitor</h3><pre><code>EAR_THRESHOLD = 0.20
+eye_timer = go.Timer(1.5)
+ear_smoother = go.Smoother()
+alarm = go.Alarm()
+faces = go.FaceLandmarks().detect(frame)
+drowsy = False
+if faces:
+    face = faces[0]
+    ear = ear_smoother.update(go.eye_ratio(face))
+    drowsy = eye_timer.check(ear &lt; EAR_THRESHOLD)
+    status = "DROWSY" if drowsy else "NORMAL"
+    color = (0, 0, 255) if drowsy else (0, 255, 0)
+    go.put_text(frame, f"Status: {status}", color=color)
+    face.draw(frame, color=color)
+else:
+    eye_timer.reset()
+    ear_smoother.reset()
+alarm.trigger(drowsy)</code></pre><p>The complete driver workflow combines EAR, smoothing, head direction, timers, missing-face detection, Arduino bitmasks, Telegram, sound, GUI, and FPS. <code>DriverMonitor</code> is available as a shortcut for quick prototypes.</p></article>
+      <article class="doc-block" id="arduino"><h3>Serial Arduino</h3><pre><code>arduino = go.Serial()
+if arduino.connected:
+    arduino.send("1")
+arduino.close()</code></pre></article>
+      <article class="doc-block" id="telegram"><h3>Telegram alerts</h3><p>Create a bot with <code>@BotFather</code>. Store the token and chat ID in environment variables, never in source code.</p><pre><code># PowerShell
+$env:CVGO_TELEGRAM_TOKEN="TOKEN_DARI_BOTFATHER"
+$env:CVGO_TELEGRAM_CHAT_ID="CHAT_ID"
+
+# Linux/macOS
+export CVGO_TELEGRAM_TOKEN="TOKEN_DARI_BOTFATHER"
+export CVGO_TELEGRAM_CHAT_ID="CHAT_ID"
+
+telegram = go.Telegram(token="TOKEN_DARI_BOTFATHER")
+print(telegram.find_chat_id())
+telegram = go.Telegram()
+telegram.send_message("CVGO aktif")
+telegram.send_photo(frame, "Peringatan: orang terdeteksi.", key="security")
+if drowsy:
+    telegram.send_photo(frame, "Peringatan: pengemudi mengantuk.", key="drowsy")</code></pre><p><code>send_photo()</code> accepts OpenCV frames, bytes, or image paths. Cooldown defaults to 30 seconds; use a different key per alert or set <code>cooldown=60</code>. Delivery returns <code>True</code>/<code>False</code> and details are available through <code>telegram.last_error</code>.</p></article>
+      <article class="doc-block"><h3>Complete example coverage, development, and license</h3><p>The V1 sequence covers camera, face detection, face landmarks, face metrics, Arduino, face-to-Arduino, drowsiness, driver monitor, hand tracking, pose tracking, security pose, object detection, person security, gesture recognition, holistic tracking, selfie segmentation, and Telegram security.</p><pre><code>pip install -e .
+pip install -e ".[dev]"</code></pre><p>CVGO is released under the MIT License. This page contains the complete documentation and is designed for GitHub Pages.</p></article>
+    </div></section>
+  </main>
+  <footer><div class="wrap">CVGO V1 | MIT License | <a href="https://kelasrobot.com">kelasrobot.com</a></div></footer>
+</body>
+</html>
