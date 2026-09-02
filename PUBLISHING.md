@@ -1,34 +1,34 @@
-# Publikasi CVGO ke PyPI
+# Publishing CVGO to PyPI
 
-Panduan ini digunakan agar pengguna nantinya dapat memasang CVGO dengan:
+This guide is used so users can install CVGO with:
 
 ```bash
 pip install cvgo
 ```
 
-## 1. Periksa nama proyek
+## 1. Check the project name
 
-Buka halaman berikut:
+Open the following page:
 
 ```text
 https://pypi.org/project/cvgo/
 ```
 
-Halaman 404 biasanya berarti belum ada rilis publik dengan nama tersebut.
-Namun, kepastian terakhir tetap ditentukan PyPI saat upload pertama karena
-sebuah nama dapat ditahan atau terlalu mirip dengan proyek lain.
+A 404 page usually means there is no public release yet under that name.
+However, the final confirmation is always determined by PyPI at the first upload,
+because a name can be reserved or too similar to another project.
 
-## 2. Buat akun
+## 2. Create accounts
 
-Buat dua akun terpisah:
+Create two separate accounts:
 
 - TestPyPI: https://test.pypi.org/account/register/
 - PyPI: https://pypi.org/account/register/
 
-Aktifkan 2FA dan buat API token. Jangan memasukkan token ke source code,
-repository Git, README, atau file yang dibagikan.
+Enable 2FA and create an API token. Do not place the token in source code,
+Git repositories, README files, or other shared files.
 
-## 3. Siapkan environment
+## 3. Prepare the environment
 
 Windows PowerShell:
 
@@ -48,60 +48,60 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-## 4. Jalankan pengujian
+## 4. Run tests
 
 ```bash
 python -m unittest discover -s tests -v
 python -m compileall -q src examples tests
 ```
 
-Lakukan juga pengujian manual dengan webcam, Arduino, dan satu chat Telegram
-khusus pengujian pada environment yang memakai MediaPipe 0.10.21 sebelum rilis.
-Pastikan token Telegram hanya disimpan sebagai environment variable dan tidak
-ikut masuk ke source, contoh, log, atau distribution.
+Also run manual checks with a webcam, Arduino, and one Telegram chat in a test
+environment using MediaPipe 0.10.21 before release. Keep Telegram tokens only in
+environment variables and do not include them in source, logs, or distribution
+artifacts.
 
-Siapkan dan uji model Tasks API sebelum rilis:
+Prepare and test the model download flow before release:
 
 ```bash
 python -c "import cvgo as go; go.download_model('object_detection')"
 python -c "import cvgo as go; go.download_model('gesture_recognizer')"
 ```
 
-Model tidak dimasukkan ke wheel. `ObjectDetector` dan `GestureRecognizer`
-mengunduh model resmi MediaPipe satu kali, lalu menggunakannya dari cache.
+Models are not included in the wheel. `ObjectDetector` and `GestureRecognizer`
+download the official MediaPipe models once and then reuse them from cache.
 
-## 5. Build distribution
+## 5. Build the distribution
 
-Pastikan folder `dist` dari percobaan lama sudah tidak digunakan, kemudian:
+Make sure the old `dist` folder is not reused, then run:
 
 ```bash
 python -m build
 python -m twine check dist/*
 ```
 
-Hasil normalnya terdiri dari:
+A normal result includes:
 
 ```text
 dist/cvgo-0.1.1.tar.gz
 dist/cvgo-0.1.1-py3-none-any.whl
 ```
 
-## 6. Uji di TestPyPI
+## 6. Test on TestPyPI
 
 ```bash
 python -m twine upload --repository testpypi dist/*
 ```
 
-Username untuk token:
+Username for the token:
 
 ```text
 __token__
 ```
 
-Password adalah API token TestPyPI lengkap yang diawali `pypi-`.
+The password is the full TestPyPI API token starting with `pypi-`.
 
-Uji instalasinya di virtual environment baru. Dependency tetap diambil dari
-PyPI utama karena TestPyPI tidak selalu mempunyai semua dependency:
+Test the installation in a fresh virtual environment. Dependencies still come from
+main PyPI because TestPyPI does not always mirror every package:
 
 ```bash
 pip install \
@@ -110,41 +110,41 @@ pip install \
   cvgo
 ```
 
-Lalu uji:
+Then validate:
 
 ```bash
 python -c "import cvgo; print(cvgo.__version__)"
 ```
 
-## 7. Upload ke PyPI
+## 7. Upload to PyPI
 
-Jika TestPyPI berhasil:
+If TestPyPI succeeds:
 
 ```bash
 python -m twine upload dist/*
 ```
 
-Setelah rilis tampil, uji lagi di virtual environment baru:
+After the release appears, test again in a fresh virtual environment:
 
 ```bash
 pip install cvgo
 python -c "import cvgo; print(cvgo.__version__)"
 ```
 
-## 8. Rilis berikutnya
+## 8. Next release
 
-File dengan nomor versi yang sama tidak dapat diunggah ulang. Jika ada revisi,
-ubah versi di `pyproject.toml`, misalnya:
+Files with the same version number cannot be uploaded again. If a revision is
+needed, update the version in `pyproject.toml`, for example:
 
 ```toml
 version = "0.1.1"
 ```
 
-Lalu build ulang dan upload file versi baru.
+Then rebuild and upload the new version.
 
-## Versi inti CVGO
+## Core CVGO versions
 
-CVGO mengunci stack inti yang telah diuji:
+CVGO pins the tested core stack:
 
 ```toml
 numpy==1.26.4
@@ -152,7 +152,7 @@ opencv-contrib-python==4.11.0.86
 mediapipe==0.10.21
 ```
 
-Penguncian versi ini menjaga API `mp.solutions`, model, modul `cv2`, dan hasil
-pengujian agar konsisten antara komputer pengembang dan komputer peserta.
-Gunakan virtual environment khusus agar exact pin tidak berbenturan dengan
-proyek lain yang membutuhkan OpenCV atau NumPy versi berbeda.
+This version pinning keeps the `mp.solutions` API, models, `cv2` module, and test
+results consistent across developer machines and participant machines. Use a
+separate virtual environment so exact pins do not conflict with other projects that
+need different OpenCV or NumPy versions.
