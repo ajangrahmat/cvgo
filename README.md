@@ -1,6 +1,16 @@
-# CVGO
+<p align="center">
+    <img src="logo-cvgo.png" alt="CVGO" width="520">
+</p>
 
-**Simple Computer Vision for Python**
+<h1 align="center">CVGO</h1>
+
+<p align="center"><strong>Simple Computer Vision for Python</strong></p>
+
+<p align="center">
+    <a href="https://kelasrobot.com">Homepage</a> ·
+    <a href="examples/">Examples</a> ·
+    <a href="LICENSE">MIT License</a>
+</p>
 
 CVGO simplifies the repetitive parts of OpenCV and MediaPipe while keeping the
 main program flow visible. Users still write `while True`, read frames, inspect
