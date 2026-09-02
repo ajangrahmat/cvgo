@@ -28,35 +28,35 @@ Dynamic: license-file
 
 **Simple Computer Vision for Python**
 
-CVGO menyederhanakan bagian OpenCV dan MediaPipe yang berulang, tetapi tetap
-memperlihatkan alur utama program. Pengguna masih menulis `while True`, membaca
-frame, mengambil hasil deteksi, membuat keputusan, dan menampilkan GUI.
+CVGO simplifies the repetitive parts of OpenCV and MediaPipe while keeping the
+main program flow visible. Users still write `while True`, read frames, inspect
+detection results, make decisions, and display the GUI.
 
 > Simple by default, customizable when needed.
 
-## Instalasi
+## Installation
 
-Setelah tersedia di PyPI:
+Once available on PyPI:
 
 ```bash
 pip install cvgo
 ```
 
-CVGO V1 mengunci versi inti yang sudah diuji:
+CVGO V1 pins the core versions that have been tested:
 
-| Paket | Versi |
+| Package | Version |
 |---|---|
 | CVGO | `0.1.1` |
 | OpenCV Contrib | `4.11.0.86` |
 | NumPy | `1.26.4` |
 | MediaPipe | `0.10.21` |
 
-Paket OpenCV yang dipakai adalah `opencv-contrib-python` agar tidak memasang dua
-varian `cv2` sekaligus dengan dependensi MediaPipe.
+The OpenCV package used is `opencv-contrib-python` to avoid installing two
+separate `cv2` variants alongside MediaPipe dependencies.
 
-Gunakan Python 3.10, 3.11, atau 3.12.
+Use Python 3.10, 3.11, or 3.12.
 
-Disarankan memasang CVGO di virtual environment khusus:
+It is recommended to install CVGO in a dedicated virtual environment:
 
 ```powershell
 py -3.11 -m venv .venv-cvgo
@@ -65,17 +65,17 @@ python -m pip install --upgrade pip
 python -m pip install cvgo
 ```
 
-Pada virtual environment baru, `pip` akan memasang dependency satu kali. Jika
-perintah instalasi dijalankan lagi pada environment yang sama, paket yang sudah
-sesuai akan ditandai sebagai `Requirement already satisfied`.
+In a new virtual environment, `pip` installs dependencies once. If the
+installation command is run again in the same environment, matching packages are
+reported as `Requirement already satisfied`.
 
-Jangan memasang `opencv-python`, `opencv-python-headless`, atau varian OpenCV
-lain bersama `opencv-contrib-python`. Semua varian tersebut menyediakan modul
-`cv2` yang sama.
+Do not install `opencv-python`, `opencv-python-headless`, or other OpenCV
+variants alongside `opencv-contrib-python`. They all provide the same `cv2`
+module.
 
-`ObjectDetector` dan `GestureRecognizer` memakai model resmi MediaPipe yang
-diunduh otomatis saat pertama digunakan. Komputer hanya memerlukan internet
-pada unduhan pertama; sesudah itu model digunakan dari cache.
+`ObjectDetector` and `GestureRecognizer` use official MediaPipe models that are
+downloaded automatically on first use. The computer only needs internet access
+for the first download; afterward, the model is reused from cache.
 
 ## Import
 
@@ -83,46 +83,46 @@ pada unduhan pertama; sesudah itu model digunakan dari cache.
 import cvgo as go
 ```
 
-Semua komponen juga dapat di-import langsung:
+All components can also be imported directly:
 
 ```python
 from cvgo import Camera, ObjectDetector, Telegram
 ```
 
-## Fitur CVGO V1
+## CVGO V1 Features
 
-| Fitur | API utama | Hasil |
+| Feature | Main API | Output |
 |---|---|---|
-| Kamera dan GUI | `Camera` | Frame OpenCV |
-| Deteksi wajah | `FaceDetector` | Kotak wajah |
-| Landmark wajah | `FaceLandmarks` | Landmark dan metrik wajah |
-| Hand tracking | `HandTracker` | 21 landmark per tangan |
-| Pose tracking | `PoseTracker` | 33 landmark tubuh |
-| Holistic tracking | `HolisticTracker` | Wajah, pose, dan kedua tangan |
-| Gesture | `GestureRecognizer` | Gesture, score, dan landmark |
-| Object detection | `ObjectDetector` | Label, score, dan kotak objek |
-| Segmentasi manusia | `SelfieSegmenter` | Mask manusia dan latar |
-| Driver monitor | Komponen modular | Kantuk, arah kepala, dan alarm |
-| Arduino | `Serial` | Komunikasi serial |
-| Telegram | `Telegram` | Pesan teks dan foto dari frame kamera |
+| Camera and GUI | `Camera` | OpenCV frames |
+| Face detection | `FaceDetector` | Face boxes |
+| Face landmarks | `FaceLandmarks` | Face landmarks and metrics |
+| Hand tracking | `HandTracker` | 21 landmarks per hand |
+| Pose tracking | `PoseTracker` | 33 body landmarks |
+| Holistic tracking | `HolisticTracker` | Face, pose, and both hands |
+| Gesture | `GestureRecognizer` | Gesture, score, and landmarks |
+| Object detection | `ObjectDetector` | Labels, scores, and object boxes |
+| Human segmentation | `SelfieSegmenter` | Human mask and background |
+| Driver monitor | Modular components | Drowsiness, head direction, and alarms |
+| Arduino | `Serial` | Serial communication |
+| Telegram | `Telegram` | Text messages and photos from camera frames |
 
-Ini adalah cakupan lengkap CVGO V1 untuk proyek kamera dan pembelajaran.
-Fitur MediaPipe di luar cakupan tersebut tetap dapat ditambahkan pada versi
-berikutnya tanpa mengubah pola API utama.
+This is the full coverage of CVGO V1 for camera and learning projects.
+MediaPipe features outside this scope can still be added in later versions without
+changing the main API pattern.
 
-## Gaya nama Python
+## Python Naming Style
 
-CVGO mengikuti gaya umum Python (PEP 8):
+CVGO follows common Python naming conventions (PEP 8):
 
-- class memakai `PascalCase`: `HandTracker`, `PoseTracker`;
-- fungsi dan method memakai `snake_case`: `read_fps()`, `put_text()`;
-- konstanta memakai `UPPER_CASE`: `BIT_DROWSY`, `LEFT_WRIST`.
+- classes use `PascalCase`: `HandTracker`, `PoseTracker`;
+- functions and methods use `snake_case`: `read_fps()`, `put_text()`;
+- constants use `UPPER_CASE`: `BIT_DROWSY`, `LEFT_WRIST`.
 
-Jadi gunakan `read_fps()`, bukan `readFPS()`. Karena objeknya sudah bernama
-`FPS`, bentuk yang paling ringkas adalah `fps.read()`; `fps.read_fps()` tetap
-tersedia sebagai alias yang lebih eksplisit.
+So use `read_fps()`, not `readFPS()`. Since the object is already named `FPS`,
+the shortest form is `fps.read()`. `fps.read_fps()` remains available as a more
+explicit alias.
 
-## Default yang sederhana
+## Simple Defaults
 
 ```python
 camera = go.Camera()
@@ -135,25 +135,25 @@ arduino = go.Serial()
 timer = go.Timer()
 ```
 
-Default utamanya:
+Main defaults:
 
-| Komponen | Default |
+| Component | Default |
 |---|---|
-| `Camera()` | Kamera `0` |
-| `FaceDetector()` | Maksimal satu wajah |
-| `FaceLandmarks()` | Maksimal satu wajah |
-| `HandTracker()` | Maksimal dua tangan |
-| `PoseTracker()` | Satu pose utama |
-| `HolisticTracker()` | Satu orang utama, 543 landmark |
-| `GestureRecognizer()` | Maksimal dua tangan |
-| `ObjectDetector()` | Maksimal 10 objek, confidence `0.5` |
-| `SelfieSegmenter()` | Model landscape untuk webcam |
-| `Serial()` | Port otomatis, `9600` baud |
-| `Telegram()` | Konfigurasi dari environment, cooldown 30 detik |
-| `Timer()` | Durasi satu detik |
+| `Camera()` | Camera `0` |
+| `FaceDetector()` | Maximum one face |
+| `FaceLandmarks()` | Maximum one face |
+| `HandTracker()` | Maximum two hands |
+| `PoseTracker()` | One main pose |
+| `HolisticTracker()` | One main person, 543 landmarks |
+| `GestureRecognizer()` | Maximum two hands |
+| `ObjectDetector()` | Maximum 10 objects, confidence `0.5` |
+| `SelfieSegmenter()` | Landscape model for webcams |
+| `Serial()` | Automatic port, `9600` baud |
+| `Telegram()` | Environment-based configuration, 30-second cooldown |
+| `Timer()` | One-second duration |
 | `Smoother()` | Alpha `0.45` |
 
-Isi parameter hanya ketika ingin mengubah default:
+Only set parameters when you want to change the default behavior:
 
 ```python
 camera = go.Camera(1, width=1280, height=720)
@@ -165,10 +165,10 @@ objects = go.ObjectDetector(confidence=0.7, allow=["person"])
 telegram = go.Telegram(cooldown=60)
 ```
 
-## Kamera
+## Camera
 
-Secara default, CVGO membiarkan OpenCV memilih backend kamera terbaik
-(`CAP_ANY`). Backend khusus tetap dapat diberikan melalui parameter `backend`.
+By default, CVGO leaves OpenCV to choose the best camera backend (`CAP_ANY`). A
+custom backend can still be passed using the `backend` parameter.
 
 ```python
 import cvgo as go
@@ -188,9 +188,9 @@ while True:
 camera.close()
 ```
 
-Tekan `q` untuk keluar.
+Press `q` to quit.
 
-## Deteksi wajah
+## Face Detection
 
 ```python
 import cvgo as go
@@ -217,7 +217,7 @@ camera.close()
 detector.close()
 ```
 
-## Landmark dan metrik wajah
+## Face Landmarks and Metrics
 
 ```python
 import cvgo as go
@@ -251,7 +251,7 @@ camera.close()
 landmarker.close()
 ```
 
-## Hand tracking
+## Hand Tracking
 
 ```python
 import cvgo as go
@@ -278,19 +278,19 @@ camera.close()
 tracker.close()
 ```
 
-Setiap `Hand` memiliki 21 titik, `handedness`, `confidence`, `box()`, dan hasil
-mentah MediaPipe melalui `raw`. Landmark bernama membuat kustomisasi tetap jelas:
+Each `Hand` has 21 points, `handedness`, `confidence`, `box()`, and raw MediaPipe
+results via `raw`. Named landmarks make customization clearer:
 
 ```python
 tip = hand.point(go.HandLandmark.INDEX_FINGER_TIP)
 x, y = tip.pixel(frame)
 ```
 
-OpenCV memberikan frame webcam yang tidak dicerminkan, sehingga `HandTracker`
-menyesuaikan label kiri/kanan secara default. Jika frame sudah di-flip secara
-horizontal sebelum dideteksi, gunakan `go.HandTracker(mirrored=True)`.
+OpenCV gives webcam frames without mirroring, so `HandTracker` automatically
+adjusts left/right labels by default. If the frame is already flipped horizontally
+before detection, use `go.HandTracker(mirrored=True)`.
 
-## Pose tracking
+## Pose Tracking
 
 ```python
 import cvgo as go
@@ -317,17 +317,17 @@ camera.close()
 tracker.close()
 ```
 
-`PoseTracker` menghasilkan 33 landmark tubuh dan koordinat dunia melalui
-`pose.world_points`. Contoh akses titik:
+`PoseTracker` produces 33 body landmarks and world coordinates through
+`pose.world_points`. Example access to a point:
 
 ```python
 shoulder = pose.point(go.PoseLandmark.LEFT_SHOULDER)
 ```
 
-`pose is not None` berarti model menemukan pose tubuh yang cukup terlihat.
-Ini dapat dipakai sebagai indikator keberadaan satu orang utama, tetapi bukan
-detektor orang umum atau penghitung banyak orang. Untuk CCTV jarak jauh,
-multi-person, atau menghitung orang, gunakan model object detection khusus.
+`pose is not None` means the model found a sufficiently visible body pose. This can
+be used as a signal for the presence of one main person, but it is not a general
+person detector or a multi-person counter. For distant CCTV, multi-person, or
+crowd counting scenarios, use the object detection model.
 
 ## FPS
 
@@ -339,10 +339,10 @@ while True:
     value = fps.read()
 ```
 
-Nilai diperbarui setiap satu detik secara default. Interval dapat diubah dengan
+The value is updated every second by default. The interval can be changed with
 `go.FPS(update_every=0.5)`.
 
-## Object detection
+## Object Detection
 
 ```python
 import cvgo as go
@@ -369,31 +369,31 @@ camera.close()
 detector.close()
 ```
 
-Setiap `DetectedObject` memiliki `label`, `score`, `box`, `is_person`, dan
-hasil mentah melalui `raw`. Untuk khusus deteksi orang:
+Each `DetectedObject` has `label`, `score`, `box`, `is_person`, and raw results via
+`raw`. For person detection specifically:
 
 ```python
 detector = go.ObjectDetector(allow=["person"])
 ```
 
-Model EfficientDet-Lite0 resmi MediaPipe diunduh otomatis satu kali saat
-pertama digunakan. Setelah itu model dibaca dari cache. Model kustom tetap bisa
-dipakai:
+The official MediaPipe EfficientDet-Lite0 model is downloaded automatically once
+on first use. After that, the model is read from cache. Custom models can still be
+used:
 
 ```python
 detector = go.ObjectDetector("models/custom_model.tflite")
 ```
 
-Model juga dapat disiapkan lebih awal:
+The model can also be prepared in advance:
 
 ```python
 go.download_model("object_detection")
 ```
 
-Untuk memproses gambar-gambar terpisah dan bukan frame video berurutan, gunakan
+To process separate images instead of sequential video frames, use
 `go.ObjectDetector(stream=False)`.
 
-## Gesture recognition
+## Gesture Recognition
 
 ```python
 import cvgo as go
@@ -420,14 +420,14 @@ camera.close()
 recognizer.close()
 ```
 
-Model default mengenali `Closed_Fist`, `Open_Palm`, `Pointing_Up`,
-`Thumb_Down`, `Thumb_Up`, `Victory`, dan `ILoveYou`. Setiap hasil juga membuka
-`gesture.hand`, `gesture.score`, serta landmark mentah untuk logika kustom.
+The default model recognizes `Closed_Fist`, `Open_Palm`, `Pointing_Up`,
+`Thumb_Down`, `Thumb_Up`, `Victory`, and `ILoveYou`. Each result also exposes
+`gesture.hand`, `gesture.score`, and raw landmarks for custom logic.
 
-Gunakan `go.GestureRecognizer(stream=False)` untuk gambar statis yang tidak
-berasal dari satu video berurutan.
+Use `go.GestureRecognizer(stream=False)` for static images that are not part of a
+continuous video stream.
 
-## Holistic tracking
+## Holistic Tracking
 
 ```python
 import cvgo as go
@@ -452,10 +452,10 @@ camera.close()
 tracker.close()
 ```
 
-Bagian hasil tetap dapat diakses sendiri melalui `result.face`, `result.pose`,
-`result.left_hand`, dan `result.right_hand`.
+The result parts can still be accessed directly through `result.face`,
+`result.pose`, `result.left_hand`, and `result.right_hand`.
 
-## Selfie segmentation
+## Selfie Segmentation
 
 ```python
 import cvgo as go
@@ -480,16 +480,16 @@ camera.close()
 segmenter.close()
 ```
 
-Mengganti latar dengan warna atau gambar:
+Replace the background with a color or image:
 
 ```python
 frame = result.apply(frame, background=(40, 40, 40))
 frame = result.apply(frame, background=background_image)
 ```
 
-## Timer kondisi
+## Condition Timer
 
-`Timer` aktif jika kondisi terus benar selama durasi yang ditentukan.
+`Timer` becomes active when a condition remains true for the configured duration.
 
 ```python
 eye_timer = go.Timer(1.5)
@@ -498,9 +498,9 @@ eyes_closed = ear < 0.20
 drowsy = eye_timer.check(eyes_closed)
 ```
 
-Saat `eyes_closed` kembali salah, timer otomatis di-reset.
+When `eyes_closed` becomes false again, the timer resets automatically.
 
-## Deteksi kantuk yang tetap mudah dipelajari
+## Easy-to-Understand Drowsiness Detection
 
 ```python
 import cvgo as go
@@ -528,7 +528,7 @@ while True:
         ear = ear_smoother.update(go.eye_ratio(face))
         drowsy = eye_timer.check(ear < EAR_THRESHOLD)
 
-        status = "NGANTUK" if drowsy else "NORMAL"
+        status = "DROWSY" if drowsy else "NORMAL"
         color = (0, 0, 255) if drowsy else (0, 255, 0)
 
         go.put_text(frame, f"Status: {status}", color=color)
