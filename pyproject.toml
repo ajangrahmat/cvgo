@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cvgo"
+version = "0.1.1"
+description = "Simple Computer Vision for Python"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Ajang Rahmat" }
+]
+keywords = [
+    "computer-vision",
+    "opencv",
+    "mediapipe",
+    "arduino",
+    "telegram",
+    "education",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy==1.26.4",
+    "opencv-contrib-python==4.11.0.86",
+    "mediapipe==0.10.21",
+    "pyserial>=3.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2",
+    "twine>=5",
+]
+
+[project.urls]
+Homepage = "https://kelasrobot.com"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
