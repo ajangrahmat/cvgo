@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ._validation import boolean, choice, confidence
 from .face import LandmarkFace
 from .hand import Hand
 from .pose import Pose
@@ -34,6 +35,9 @@ class HolisticResult:
     @property
     def found(self) -> bool:
         return any((self.face, self.pose, self.left_hand, self.right_hand))
+
+    def __bool__(self) -> bool:
+        return self.found
 
     @property
     def hands(self) -> list[Hand]:
@@ -76,6 +80,23 @@ class HolisticTracker:
         segmentation: bool = False,
         static: bool = False,
     ) -> None:
+        model_complexity = choice(
+            "model_complexity",
+            model_complexity,
+            (0, 1, 2),
+        )
+        detection_confidence = confidence(
+            "detection_confidence",
+            detection_confidence,
+        )
+        tracking_confidence = confidence(
+            "tracking_confidence",
+            tracking_confidence,
+        )
+        smooth = boolean("smooth", smooth)
+        refine_face = boolean("refine_face", refine_face)
+        segmentation = boolean("segmentation", segmentation)
+        static = boolean("static", static)
         try:
             import mediapipe as mp
         except ImportError as exc:

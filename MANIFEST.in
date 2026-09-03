@@ -1,5 +1,7 @@
 include README.md
+include CHANGELOG.md
 include LICENSE
 include PUBLISHING.md
-recursive-include examples *.py
-
+include index.html
+include logo-cvgo.png
+recursive-include examples *.py *.md

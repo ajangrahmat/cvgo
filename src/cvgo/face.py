@@ -5,6 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Sequence
 
+from ._validation import (
+    boolean,
+    choice,
+    confidence,
+    non_negative_int,
+    positive_int,
+)
+from .geometry import BoundingBox
+
 
 @dataclass(frozen=True)
 class LandmarkPoint:
@@ -49,8 +58,12 @@ class LandmarkFace:
     def point(self, index: int) -> LandmarkPoint:
         return self.points[index]
 
-    def box(self, frame, *, padding: int = 10) -> "FaceBox":
-        height, width = frame.shape[:2]
+    def box(self, frame=None, *, padding: int = 10) -> "FaceBox":
+        padding = non_negative_int("padding", padding)
+        if frame is None:
+            width, height = self.width, self.height
+        else:
+            height, width = frame.shape[:2]
         xs = [p.x for p in self.points]
         ys = [p.y for p in self.points]
         x1 = max(0, int(min(xs) * width) - padding)
@@ -81,16 +94,8 @@ class LandmarkFace:
 
 
 @dataclass(frozen=True)
-class FaceBox:
-    x: int
-    y: int
-    width: int
-    height: int
+class FaceBox(BoundingBox):
     confidence: float = 1.0
-
-    @property
-    def xyxy(self) -> tuple[int, int, int, int]:
-        return self.x, self.y, self.x + self.width, self.y + self.height
 
     def draw(
         self,
@@ -100,24 +105,12 @@ class FaceBox:
         thickness: int = 2,
         label: str | None = "Face",
     ):
-        try:
-            import cv2
-        except ImportError as exc:
-            raise ImportError("OpenCV belum terpasang.") from exc
-        x1, y1, x2, y2 = self.xyxy
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
-        if label:
-            cv2.putText(
-                frame,
-                label,
-                (x1, max(20, y1 - 8)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                color,
-                thickness,
-                cv2.LINE_AA,
-            )
-        return frame
+        return super().draw(
+            frame,
+            color=color,
+            thickness=thickness,
+            label=label,
+        )
 
 
 class FaceLandmarks:
@@ -131,6 +124,16 @@ class FaceLandmarks:
         detection_confidence: float = 0.5,
         tracking_confidence: float = 0.5,
     ) -> None:
+        max_faces = positive_int("max_faces", max_faces)
+        refine = boolean("refine", refine)
+        detection_confidence = confidence(
+            "detection_confidence",
+            detection_confidence,
+        )
+        tracking_confidence = confidence(
+            "tracking_confidence",
+            tracking_confidence,
+        )
         try:
             import mediapipe as mp
         except ImportError as exc:
@@ -217,23 +220,143 @@ class FaceLandmarks:
 
 
 class FaceDetector:
-    """Deteksi kotak wajah dengan mesin landmark yang sama."""
+    """Deteksi kotak wajah dengan mesin cepat sebagai default.
 
-    def __init__(self, *, max_faces: int = 1, padding: int = 10, **kwargs) -> None:
+    ``engine="fast"`` memakai MediaPipe Face Detection. Pilih ``engine="mesh"``
+    bila aplikasi juga membutuhkan kompatibilitas hasil Face Mesh lama.
+    ``engine="auto"`` memilih mesh hanya saat opsi khusus mesh digunakan.
+    """
+
+    def __init__(
+        self,
+        *,
+        max_faces: int = 1,
+        padding: int = 10,
+        model: int = 0,
+        detection_confidence: float = 0.5,
+        engine: str = "auto",
+        refine: bool = False,
+        tracking_confidence: float = 0.5,
+    ) -> None:
+        max_faces = positive_int("max_faces", max_faces)
+        padding = non_negative_int("padding", padding)
+        model = choice("model", model, (0, 1))
+        detection_confidence = confidence(
+            "detection_confidence",
+            detection_confidence,
+        )
+        engine = choice("engine", engine, ("auto", "fast", "mesh"))
+        refine = boolean("refine", refine)
+        tracking_confidence = confidence(
+            "tracking_confidence",
+            tracking_confidence,
+        )
+
+        mesh_options_used = refine or tracking_confidence != 0.5
+        if engine == "auto":
+            engine = "mesh" if mesh_options_used else "fast"
+        elif engine == "fast" and mesh_options_used:
+            raise ValueError(
+                "refine dan tracking_confidence hanya tersedia pada engine='mesh'"
+            )
+
+        self.engine = engine
+        self.max_faces = max_faces
         self.padding = padding
-        self.landmarks = FaceLandmarks(max_faces=max_faces, **kwargs)
+        self.model_selection = model
         self.faces: list[LandmarkFace] = []
+        self.landmarks: FaceLandmarks | None = None
+        self.model: Any | None = None
+        self._raw_result: Any | None = None
+        self._closed = False
+
+        if self.engine == "mesh":
+            self.landmarks = FaceLandmarks(
+                max_faces=max_faces,
+                refine=refine,
+                detection_confidence=detection_confidence,
+                tracking_confidence=tracking_confidence,
+            )
+            self.model = self.landmarks.model
+            return
+
+        try:
+            import mediapipe as mp
+        except ImportError as exc:
+            raise ImportError(
+                "MediaPipe belum terpasang. Jalankan: pip install mediapipe"
+            ) from exc
+
+        self.mp = mp
+        self.model = mp.solutions.face_detection.FaceDetection(
+            model_selection=model,
+            min_detection_confidence=detection_confidence,
+        )
 
     def detect(self, frame) -> list[FaceBox]:
-        self.faces = self.landmarks.detect(frame)
-        return [face.box(frame, padding=self.padding) for face in self.faces]
+        if self._closed:
+            raise RuntimeError("FaceDetector sudah ditutup")
+
+        if self.engine == "mesh":
+            self.faces = self.landmarks.detect(frame)
+            return [face.box(frame, padding=self.padding) for face in self.faces]
+
+        try:
+            import cv2
+        except ImportError as exc:
+            raise ImportError("OpenCV belum terpasang.") from exc
+
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb.flags.writeable = False
+        self._raw_result = self.model.process(rgb)
+        height, width = frame.shape[:2]
+        boxes = []
+
+        for detection in self._raw_result.detections or ():
+            relative = detection.location_data.relative_bounding_box
+            x1 = min(
+                width - 1,
+                max(0, int(relative.xmin * width) - self.padding),
+            )
+            y1 = min(
+                height - 1,
+                max(0, int(relative.ymin * height) - self.padding),
+            )
+            x2 = min(
+                width - 1,
+                int((relative.xmin + relative.width) * width) + self.padding,
+            )
+            y2 = min(
+                height - 1,
+                int((relative.ymin + relative.height) * height) + self.padding,
+            )
+            score = detection.score[0] if detection.score else 0.0
+            boxes.append(
+                FaceBox(
+                    x1,
+                    y1,
+                    max(0, x2 - x1),
+                    max(0, y2 - y1),
+                    float(score),
+                )
+            )
+
+        return boxes[: self.max_faces]
 
     @property
     def raw_result(self):
-        return self.landmarks.raw_result
+        if self.engine == "mesh":
+            return self.landmarks.raw_result
+        return self._raw_result
 
     def close(self) -> None:
-        self.landmarks.close()
+        if self._closed:
+            return
+        if self.landmarks is not None:
+            self.landmarks.close()
+        elif self.model is not None:
+            self.model.close()
+        self._closed = True
 
     def __enter__(self) -> "FaceDetector":
         return self

@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import time
 
+from ._validation import non_negative_number, positive_number
+
 
 class Timer:
     """Aktif setelah kondisi bertahan selama durasi tertentu."""
 
     def __init__(self, seconds: float = 1.0) -> None:
-        if seconds < 0:
-            raise ValueError("seconds tidak boleh negatif")
-
-        self.seconds = float(seconds)
+        self.seconds = non_negative_number("seconds", seconds)
         self.started_at: float | None = None
         self.elapsed = 0.0
         self.active = False
@@ -48,7 +47,8 @@ class Smoother:
     """Exponential moving average untuk menghaluskan nilai deteksi."""
 
     def __init__(self, alpha: float = 0.45) -> None:
-        if not 0 < alpha <= 1:
+        alpha = positive_number("alpha", alpha)
+        if alpha > 1:
             raise ValueError("alpha harus lebih dari 0 dan maksimal 1")
 
         self.alpha = float(alpha)
@@ -72,10 +72,7 @@ class FPS:
     """Penghitung frame per second."""
 
     def __init__(self, update_every: float = 1.0) -> None:
-        if update_every <= 0:
-            raise ValueError("update_every harus lebih dari 0")
-
-        self.update_every = float(update_every)
+        self.update_every = positive_number("update_every", update_every)
         self.started_at = time.monotonic()
         self.frames = 0
         self.value = 0.0

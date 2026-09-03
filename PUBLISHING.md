@@ -53,6 +53,7 @@ python -m pip install -e ".[dev]"
 ```bash
 python -m unittest discover -s tests -v
 python -m compileall -q src examples tests
+python -m cvgo check
 ```
 
 Also run manual checks with a webcam, Arduino, and one Telegram chat in a test
@@ -82,8 +83,8 @@ python -m twine check dist/*
 A normal result includes:
 
 ```text
-dist/cvgo-0.1.1.tar.gz
-dist/cvgo-0.1.1-py3-none-any.whl
+dist/cvgo-0.2.1.tar.gz
+dist/cvgo-0.2.1-py3-none-any.whl
 ```
 
 ## 6. Test on TestPyPI
@@ -134,13 +135,15 @@ python -c "import cvgo; print(cvgo.__version__)"
 ## 8. Next release
 
 Files with the same version number cannot be uploaded again. If a revision is
-needed, update the version in `pyproject.toml`, for example:
+needed, update the central version file, for example:
 
-```toml
-version = "0.1.1"
+```python
+# src/cvgo/_version.py
+__version__ = "0.2.2"
 ```
 
-Then rebuild and upload the new version.
+`pyproject.toml` reads this value dynamically, so this is the only package
+version field to edit. Then rebuild and upload the new version.
 
 ## Core CVGO versions
 

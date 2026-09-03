@@ -1,22 +1,41 @@
-"""Pengujian fitur CVGO V1 yang tidak memerlukan kamera atau internet."""
+"""Pengujian fitur CVGO yang tidak memerlukan kamera atau internet."""
 
 import io
+import hashlib
 import json
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 
 import cvgo as go
+import cvgo.models as model_module
+from cvgo._running_mode import resolve_running_mode
 
 
 class FakeOwner:
     def draw(self, *_args, **_kwargs):
         return None
+
+
+class TestRunningMode(unittest.TestCase):
+    def test_public_modes_and_aliases(self):
+        self.assertEqual(resolve_running_mode("image", None), "image")
+        self.assertEqual(resolve_running_mode("VIDEO", None), "video")
+        self.assertEqual(resolve_running_mode("live-stream", None), "live")
+
+    def test_legacy_stream_argument(self):
+        self.assertEqual(resolve_running_mode("video", True), "video")
+        self.assertEqual(resolve_running_mode("video", False), "image")
+
+    def test_conflicting_mode_and_stream(self):
+        with self.assertRaisesRegex(ValueError, "bertentangan"):
+            resolve_running_mode("live", True)
 
 
 def landmarks(count, *, visibility=None):
@@ -38,8 +57,16 @@ def landmarks(count, *, visibility=None):
 class TestModelManager(unittest.TestCase):
     def test_download_and_reuse_tflite_model(self):
         payload = b"\x00\x00\x00\x00TFL3" + b"x" * 2048
+        info = model_module.MODELS["object_detection"]
+        info = replace(
+            info,
+            sha256=hashlib.sha256(payload).hexdigest(),
+        )
 
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+            model_module.MODELS,
+            {"object_detection": info},
+        ):
             response = io.BytesIO(payload)
 
             with patch(
@@ -67,8 +94,16 @@ class TestModelManager(unittest.TestCase):
 
     def test_gesture_task_header(self):
         payload = b"PK\x03\x04" + b"x" * 2048
+        info = model_module.MODELS["gesture_recognizer"]
+        info = replace(
+            info,
+            sha256=hashlib.sha256(payload).hexdigest(),
+        )
 
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+            model_module.MODELS,
+            {"gesture_recognizer": info},
+        ):
             with patch(
                 "cvgo.models.urllib.request.urlopen",
                 return_value=io.BytesIO(payload),
@@ -100,6 +135,37 @@ class TestObjectResult(unittest.TestCase):
         self.assertTrue(item.is_person)
         self.assertEqual(item.box.xyxy, (10, 20, 40, 60))
 
+    def test_object_draw_uses_shared_bounding_box(self):
+        fake_cv2 = SimpleNamespace(
+            rectangle=Mock(),
+            putText=Mock(),
+            FONT_HERSHEY_SIMPLEX=0,
+            LINE_AA=0,
+        )
+        frame = object()
+        item = go.DetectedObject(
+            raw=None,
+            box=go.ObjectBox(10, 20, 30, 40),
+            label="person",
+            score=0.9,
+        )
+
+        with patch.dict(sys.modules, {"cv2": fake_cv2}):
+            returned = item.draw(frame)
+
+        self.assertIs(returned, frame)
+        fake_cv2.rectangle.assert_called_once_with(
+            frame,
+            (10, 20),
+            (40, 60),
+            (0, 255, 0),
+            2,
+        )
+        self.assertEqual(
+            fake_cv2.putText.call_args.args[1],
+            "person 0.90",
+        )
+
 
 class TestGestureResult(unittest.TestCase):
     def test_gesture_keeps_editable_hand_result(self):
@@ -117,6 +183,9 @@ class TestGestureResult(unittest.TestCase):
         )
 
         self.assertTrue(gesture.recognized)
+        self.assertEqual(gesture.handedness, "Right")
+        self.assertEqual(gesture.points, hand.points)
+        self.assertEqual(gesture.box(padding=0), hand.box(padding=0))
         self.assertEqual(gesture.hand[go.HandLandmark.WRIST].x, 0.0)
 
 
@@ -149,7 +218,26 @@ class TestHolisticResult(unittest.TestCase):
         )
 
         self.assertFalse(result.found)
+        self.assertFalse(result)
         self.assertEqual(result.hands, [])
+
+    def test_non_empty_result_is_truthy(self):
+        hand = go.Hand(
+            landmarks(21),
+            FakeOwner(),
+            (640, 480),
+        )
+        result = go.HolisticResult(
+            FakeOwner(),
+            raw=None,
+            face=None,
+            pose=None,
+            left_hand=hand,
+            right_hand=None,
+            mask=None,
+        )
+
+        self.assertTrue(result)
 
 
 def telegram_response(result):
@@ -261,6 +349,7 @@ class FakeObjectModel:
     def __init__(self):
         self.closed = False
         self.timestamp = None
+        self.callback = None
 
     def detect(self, _image):
         category = SimpleNamespace(
@@ -285,6 +374,10 @@ class FakeObjectModel:
         self.timestamp = timestamp
         return self.detect(image)
 
+    def detect_async(self, image, timestamp):
+        self.timestamp = timestamp
+        self.callback(self.detect(image), image, timestamp)
+
     def close(self):
         self.closed = True
 
@@ -296,6 +389,7 @@ class FakeObjectFactory:
     @classmethod
     def create_from_options(cls, options):
         cls.options = options
+        cls.model.callback = getattr(options, "result_callback", None)
         return cls.model
 
 
@@ -310,6 +404,7 @@ class TestObjectDetectorFlow(unittest.TestCase):
                     RunningMode=SimpleNamespace(
                         IMAGE="image",
                         VIDEO="video",
+                        LIVE_STREAM="live",
                     ),
                 ),
             ),
@@ -338,10 +433,55 @@ class TestObjectDetectorFlow(unittest.TestCase):
         self.assertEqual(FakeObjectFactory.options.running_mode, "video")
         self.assertIsInstance(FakeObjectFactory.model.timestamp, int)
 
+    def test_live_mode_uses_async_latest_result(self):
+        fake_mp = SimpleNamespace(
+            tasks=SimpleNamespace(
+                BaseOptions=FakeOptions,
+                vision=SimpleNamespace(
+                    ObjectDetectorOptions=FakeOptions,
+                    ObjectDetector=FakeObjectFactory,
+                    RunningMode=SimpleNamespace(
+                        IMAGE="image",
+                        VIDEO="video",
+                        LIVE_STREAM="live",
+                    ),
+                ),
+            ),
+            Image=lambda **kwargs: SimpleNamespace(**kwargs),
+            ImageFormat=SimpleNamespace(SRGB="srgb"),
+        )
+        fake_cv2 = SimpleNamespace(
+            COLOR_BGR2RGB=1,
+            cvtColor=lambda frame, _code: frame,
+        )
+
+        with tempfile.NamedTemporaryFile(suffix=".tflite") as model_file:
+            with patch.dict(
+                sys.modules,
+                {"mediapipe": fake_mp, "cv2": fake_cv2},
+            ):
+                detector = go.ObjectDetector(
+                    model_file.name,
+                    mode="live",
+                )
+                objects = detector.detect(np.zeros((10, 10, 3)))
+
+        self.assertEqual(len(objects), 1)
+        self.assertTrue(detector.result_ready)
+        self.assertEqual(detector.mode, "live")
+        self.assertEqual(FakeObjectFactory.options.running_mode, "live")
+        self.assertIsInstance(detector.result_timestamp, int)
+
+    def test_invalid_mode_fails_before_model_creation(self):
+        with tempfile.NamedTemporaryFile(suffix=".tflite") as model_file:
+            with self.assertRaisesRegex(ValueError, "image.*video.*live"):
+                go.ObjectDetector(model_file.name, mode="fast")
+
 
 class FakeGestureModel:
     def __init__(self):
         self.timestamp = None
+        self.callback = None
 
     def recognize(self, _image):
         gesture = SimpleNamespace(
@@ -364,6 +504,11 @@ class FakeGestureModel:
         self.timestamp = timestamp
         return self.recognize(image)
 
+    def recognize_async(self, image, timestamp):
+        self.timestamp = timestamp
+        output_image = SimpleNamespace(width=10, height=10)
+        self.callback(self.recognize(image), output_image, timestamp)
+
     def close(self):
         return None
 
@@ -375,6 +520,7 @@ class FakeGestureFactory:
     @classmethod
     def create_from_options(cls, options):
         cls.options = options
+        cls.model.callback = getattr(options, "result_callback", None)
         return cls.model
 
 
@@ -389,6 +535,7 @@ class TestGestureRecognizerFlow(unittest.TestCase):
                     RunningMode=SimpleNamespace(
                         IMAGE="image",
                         VIDEO="video",
+                        LIVE_STREAM="live",
                     ),
                 ),
             ),
@@ -416,6 +563,45 @@ class TestGestureRecognizerFlow(unittest.TestCase):
         self.assertEqual(len(gestures[0].hand.world_points), 21)
         self.assertEqual(FakeGestureFactory.options.running_mode, "video")
         self.assertIsInstance(FakeGestureFactory.model.timestamp, int)
+
+    def test_live_mode_uses_async_latest_result(self):
+        fake_mp = SimpleNamespace(
+            tasks=SimpleNamespace(
+                BaseOptions=FakeOptions,
+                vision=SimpleNamespace(
+                    GestureRecognizerOptions=FakeOptions,
+                    GestureRecognizer=FakeGestureFactory,
+                    RunningMode=SimpleNamespace(
+                        IMAGE="image",
+                        VIDEO="video",
+                        LIVE_STREAM="live",
+                    ),
+                ),
+            ),
+            Image=lambda **kwargs: SimpleNamespace(**kwargs),
+            ImageFormat=SimpleNamespace(SRGB="srgb"),
+        )
+        fake_cv2 = SimpleNamespace(
+            COLOR_BGR2RGB=1,
+            cvtColor=lambda frame, _code: frame,
+        )
+
+        with tempfile.NamedTemporaryFile(suffix=".task") as model_file:
+            with patch.dict(
+                sys.modules,
+                {"mediapipe": fake_mp, "cv2": fake_cv2},
+            ):
+                recognizer = go.GestureRecognizer(
+                    model_file.name,
+                    mode="live",
+                )
+                gestures = recognizer.detect(np.zeros((10, 10, 3)))
+
+        self.assertEqual(len(gestures), 1)
+        self.assertTrue(recognizer.result_ready)
+        self.assertEqual(recognizer.mode, "live")
+        self.assertEqual(FakeGestureFactory.options.running_mode, "live")
+        self.assertIsInstance(recognizer.result_timestamp, int)
 
 
 if __name__ == "__main__":

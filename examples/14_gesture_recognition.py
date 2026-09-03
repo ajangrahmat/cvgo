@@ -4,7 +4,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-recognizer = go.GestureRecognizer()
+recognizer = go.GestureRecognizer(mode="live")
 
 while True:
     frame = camera.read()

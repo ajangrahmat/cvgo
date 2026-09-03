@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any
 
+from ._validation import confidence, non_negative_number, positive_number
 from .camera import Camera
 from .face import FaceLandmarks, LandmarkFace
 from .metrics import (
@@ -36,6 +37,24 @@ class EyeConfig:
     alert_after: float = 1.5
     smoothing: float = 0.45
 
+    def __post_init__(self) -> None:
+        self.closed_threshold = non_negative_number(
+            "closed_threshold",
+            self.closed_threshold,
+        )
+        self.open_threshold = non_negative_number(
+            "open_threshold",
+            self.open_threshold,
+        )
+        self.alert_after = non_negative_number("alert_after", self.alert_after)
+        self.smoothing = positive_number("smoothing", self.smoothing)
+        if self.smoothing > 1:
+            raise ValueError("smoothing harus maksimal 1")
+        if self.open_threshold < self.closed_threshold:
+            raise ValueError(
+                "open_threshold tidak boleh lebih kecil dari closed_threshold"
+            )
+
 
 @dataclass
 class HeadConfig:
@@ -48,10 +67,33 @@ class HeadConfig:
     down_release: float = 0.030
     down_alert_after: float = 0.7
 
+    def __post_init__(self) -> None:
+        self.yaw_normal = confidence("yaw_normal", self.yaw_normal)
+        self.pitch_normal = confidence("pitch_normal", self.pitch_normal)
+        for name in (
+            "turn_threshold",
+            "turn_release",
+            "turn_alert_after",
+            "down_threshold",
+            "down_release",
+            "down_alert_after",
+        ):
+            setattr(self, name, non_negative_number(name, getattr(self, name)))
+        if self.turn_release > self.turn_threshold:
+            raise ValueError("turn_release harus <= turn_threshold")
+        if self.down_release > self.down_threshold:
+            raise ValueError("down_release harus <= down_threshold")
+
 
 @dataclass
 class FaceConfig:
     missing_alert_after: float = 2.0
+
+    def __post_init__(self) -> None:
+        self.missing_alert_after = non_negative_number(
+            "missing_alert_after",
+            self.missing_alert_after,
+        )
 
 
 @dataclass

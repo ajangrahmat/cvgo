@@ -4,10 +4,11 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(allow=["person"])
+detector = go.ObjectDetector(allow=["person"], mode="live")
 telegram = go.Telegram()
 presence_timer = go.Timer(0.5)
 notified = False
+pending = None
 
 while True:
     frame = camera.read()
@@ -18,6 +19,11 @@ while True:
     people = detector.detect(frame)
     alert = presence_timer.check(bool(people))
 
+    if pending is not None and pending.done():
+        if not pending.result():
+            print(f"Telegram: {telegram.last_error}")
+        pending = None
+
     for person in people:
         person.draw(frame, color=(0, 0, 255))
 
@@ -25,14 +31,12 @@ while True:
     color = (0, 0, 255) if alert else (0, 255, 0)
     go.put_text(frame, f"Status: {status}", color=color)
 
-    if alert and not notified:
-        sent = telegram.send_photo(
+    if alert and not notified and pending is None:
+        pending = telegram.send_photo_async(
             frame,
             f"Warning: {len(people)} person(s) detected.",
             key="security",
         )
-        if not sent:
-            print(f"Telegram: {telegram.last_error}")
 
     notified = alert
 
@@ -41,3 +45,4 @@ while True:
 
 camera.close()
 detector.close()
+telegram.close()

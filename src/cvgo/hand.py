@@ -6,7 +6,15 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any, Sequence
 
+from ._validation import (
+    boolean,
+    choice,
+    confidence,
+    non_negative_int,
+    positive_int,
+)
 from .face import LandmarkPoint
+from .geometry import BoundingBox
 
 
 HAND_CONNECTIONS = (
@@ -61,18 +69,10 @@ class HandLandmark(IntEnum):
 
 
 @dataclass(frozen=True)
-class HandBox:
+class HandBox(BoundingBox):
     """Kotak pembatas satu tangan dalam koordinat piksel."""
 
-    x: int
-    y: int
-    width: int
-    height: int
     confidence: float = 1.0
-
-    @property
-    def xyxy(self) -> tuple[int, int, int, int]:
-        return self.x, self.y, self.x + self.width, self.y + self.height
 
     def draw(
         self,
@@ -82,27 +82,12 @@ class HandBox:
         thickness: int = 2,
         label: str | None = "Hand",
     ):
-        try:
-            import cv2
-        except ImportError as exc:
-            raise ImportError("OpenCV belum terpasang.") from exc
-
-        x1, y1, x2, y2 = self.xyxy
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
-
-        if label:
-            cv2.putText(
-                frame,
-                label,
-                (x1, max(20, y1 - 8)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                color,
-                thickness,
-                cv2.LINE_AA,
-            )
-
-        return frame
+        return super().draw(
+            frame,
+            color=color,
+            thickness=thickness,
+            label=label,
+        )
 
 
 class Hand:
@@ -154,6 +139,7 @@ class Hand:
         return self.points[index]
 
     def box(self, *, padding: int = 10) -> HandBox:
+        padding = non_negative_int("padding", padding)
         xs = [point.x for point in self.points]
         ys = [point.y for point in self.points]
         x1 = max(0, int(min(xs) * self.width) - padding)
@@ -196,6 +182,22 @@ class HandTracker:
         static: bool = False,
         mirrored: bool = False,
     ) -> None:
+        max_hands = positive_int("max_hands", max_hands)
+        model_complexity = choice(
+            "model_complexity",
+            model_complexity,
+            (0, 1),
+        )
+        detection_confidence = confidence(
+            "detection_confidence",
+            detection_confidence,
+        )
+        tracking_confidence = confidence(
+            "tracking_confidence",
+            tracking_confidence,
+        )
+        static = boolean("static", static)
+        mirrored = boolean("mirrored", mirrored)
         try:
             import mediapipe as mp
         except ImportError as exc:

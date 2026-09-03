@@ -1,9 +1,10 @@
 """CVGO — Simple Computer Vision for Python."""
 
-from importlib.metadata import PackageNotFoundError, version
+from ._version import __version__
 
 from .camera import Camera
 from .drawing import put_text
+from .diagnostics import check_camera, system_info
 from .driver import (
     BIT_DROWSY,
     BIT_FACE_MISSING,
@@ -17,12 +18,13 @@ from .driver import (
 )
 from .face import FaceBox, FaceDetector, FaceLandmarks, LandmarkFace, LandmarkPoint
 from .gesture import Gesture, GestureRecognizer
+from .geometry import BoundingBox
 from .hand import Hand, HandBox, HandLandmark, HandTracker
 from .holistic import HolisticResult, HolisticTracker
 from .metrics import eye_ratio, pitch_ratio, yaw_ratio
 from .models import download_model, model_cache_dir, model_path
 from .object_detection import DetectedObject, ObjectBox, ObjectDetector
-from .pose import Pose, PoseLandmark, PoseTracker
+from .pose import Pose, PoseBox, PoseLandmark, PoseTracker
 from .segmentation import SegmentationResult, SelfieSegmenter
 from .serial_io import Serial
 from .sound import Alarm
@@ -35,7 +37,9 @@ __all__ = [
     "BIT_FACE_MISSING",
     "BIT_HEAD_DOWN",
     "BIT_LOOKING_AWAY",
+    "BoundingBox",
     "Camera",
+    "check_camera",
     "DetectedObject",
     "DriverMonitor",
     "EyeConfig",
@@ -59,12 +63,14 @@ __all__ = [
     "ObjectBox",
     "ObjectDetector",
     "Pose",
+    "PoseBox",
     "PoseLandmark",
     "PoseTracker",
     "SegmentationResult",
     "Serial",
     "SelfieSegmenter",
     "Smoother",
+    "system_info",
     "Telegram",
     "Timer",
     "eye_ratio",
@@ -75,8 +81,3 @@ __all__ = [
     "put_text",
     "yaw_ratio",
 ]
-
-try:
-    __version__ = version("cvgo")
-except PackageNotFoundError:  # Saat source dijalankan tanpa instalasi.
-    __version__ = "0.1.1"

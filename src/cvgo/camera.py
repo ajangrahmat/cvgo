@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from numbers import Integral
 from typing import Any
+
+from ._validation import non_negative_int, positive_int, positive_number
 
 
 class Camera:
@@ -24,6 +27,17 @@ class Camera:
         fps: float | None = None,
         backend: int | None = None,
     ) -> None:
+        if width is not None:
+            width = positive_int("width", width)
+        if height is not None:
+            height = positive_int("height", height)
+        if fps is not None:
+            fps = positive_number("fps", fps)
+        if backend is not None:
+            if isinstance(backend, bool) or not isinstance(backend, Integral):
+                raise TypeError("backend harus bilangan bulat OpenCV")
+            backend = int(backend)
+
         self.source = source
         self.width = width
         self.height = height
@@ -102,16 +116,22 @@ class Camera:
         quit_key: str = "q",
     ) -> bool:
         """Tampilkan frame. Menghasilkan ``False`` ketika tombol keluar ditekan."""
+        delay = non_negative_int("delay", delay)
+        if not isinstance(quit_key, str):
+            raise TypeError("quit_key harus berupa string")
+        if len(quit_key) != 1:
+            raise ValueError("quit_key harus tepat satu karakter")
         cv2 = self._cv2()
         cv2.imshow(title, frame)
         key = cv2.waitKey(delay) & 0xFF
         return key != ord(quit_key)
 
-    def close(self) -> None:
+    def close(self, *, windows: bool = True) -> None:
         if self.capture is not None:
             self.capture.release()
             self.capture = None
-        self.close_windows()
+        if windows:
+            self.close_windows()
 
     @staticmethod
     def close_windows() -> None:

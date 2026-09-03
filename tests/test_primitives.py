@@ -139,6 +139,31 @@ class TestHandResult(unittest.TestCase):
         self.assertEqual(hand.box(padding=0).xyxy, (0, 0, 639, 479))
 
 
+class TestBoundingBox(unittest.TestCase):
+    def test_shared_geometry_properties(self):
+        box = go.BoundingBox(10, 20, 30, 40)
+
+        self.assertEqual(box.left, 10)
+        self.assertEqual(box.top, 20)
+        self.assertEqual(box.right, 40)
+        self.assertEqual(box.bottom, 60)
+        self.assertEqual(box.xyxy, (10, 20, 40, 60))
+        self.assertEqual(box.center, (25, 40))
+        self.assertEqual(box.area, 1200)
+
+    def test_face_box_without_frame(self):
+        face = go.LandmarkFace(
+            raw_landmarks(10),
+            FakeOwner(),
+            (640, 480),
+        )
+
+        box = face.box(padding=0)
+
+        self.assertIsInstance(box, go.BoundingBox)
+        self.assertEqual(box.xyxy, (0, 0, 639, 479))
+
+
 class TestPoseResult(unittest.TestCase):
     def test_named_points_visibility_and_world_points(self):
         pose = go.Pose(
@@ -154,6 +179,51 @@ class TestPoseResult(unittest.TestCase):
         self.assertFalse(
             pose.visible(go.PoseLandmark.LEFT_SHOULDER, confidence=0.9)
         )
+
+    def test_box_ignores_landmarks_with_low_visibility(self):
+        raw = SimpleNamespace(
+            landmark=[
+                SimpleNamespace(
+                    x=0.2,
+                    y=0.3,
+                    z=0.0,
+                    visibility=0.9,
+                ),
+                SimpleNamespace(
+                    x=0.6,
+                    y=0.8,
+                    z=0.0,
+                    visibility=0.8,
+                ),
+                SimpleNamespace(
+                    x=0.99,
+                    y=0.99,
+                    z=0.0,
+                    visibility=0.1,
+                ),
+            ]
+        )
+        pose = go.Pose(raw, FakeOwner(), (640, 480))
+        box = pose.box(padding=0)
+
+        self.assertIsInstance(box, go.PoseBox)
+        self.assertIsInstance(box, go.BoundingBox)
+        self.assertEqual(box.xyxy, (128, 144, 384, 384))
+        self.assertAlmostEqual(box.confidence, 0.85)
+        self.assertAlmostEqual(pose.confidence, 0.6)
+
+    def test_box_validates_options(self):
+        pose = go.Pose(
+            raw_landmarks(33, visibility=0.8),
+            FakeOwner(),
+            (640, 480),
+        )
+
+        with self.assertRaises(ValueError):
+            pose.box(padding=-1)
+
+        with self.assertRaises(ValueError):
+            pose.box(min_visibility=1.1)
 
 
 if __name__ == "__main__":

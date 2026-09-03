@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ._validation import choice, confidence, positive_int
+
 
 class SegmentationResult:
     """Mask segmentasi manusia dan helper untuk mengganti latar."""
@@ -13,6 +15,7 @@ class SegmentationResult:
         self.raw = raw
 
     def foreground(self, *, threshold: float = 0.5):
+        threshold = confidence("threshold", threshold)
         return self.mask > threshold
 
     def apply(
@@ -52,8 +55,7 @@ class SegmentationResult:
         except ImportError as exc:
             raise ImportError("OpenCV belum terpasang.") from exc
 
-        if amount <= 0:
-            raise ValueError("amount harus lebih dari 0")
+        amount = positive_int("amount", amount)
         if amount % 2 == 0:
             amount += 1
 
@@ -69,8 +71,7 @@ class SelfieSegmenter:
     """Pisahkan manusia utama dari latar belakang."""
 
     def __init__(self, *, model: int = 1) -> None:
-        if model not in (0, 1):
-            raise ValueError("model harus 0 (general) atau 1 (landscape)")
+        model = choice("model", model, (0, 1))
 
         try:
             import mediapipe as mp

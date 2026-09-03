@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
-from .hand import Hand, draw_hand_points
+from ._running_mode import resolve_running_mode
+from ._validation import boolean, confidence, positive_int
+from .hand import Hand, HandBox, draw_hand_points
 from .models import resolve_model
 
 
@@ -30,6 +33,17 @@ class Gesture:
     def recognized(self) -> bool:
         return self.label not in ("", "None", "Unknown")
 
+    @property
+    def handedness(self) -> str:
+        return self.hand.handedness
+
+    @property
+    def points(self):
+        return self.hand.points
+
+    def box(self, *, padding: int = 10) -> HandBox:
+        return self.hand.box(padding=padding)
+
     def draw(
         self,
         frame,
@@ -45,7 +59,7 @@ class Gesture:
         label = self.label
         if self.recognized:
             label = f"{label} {self.score:.2f}"
-        self.hand.box().draw(frame, color=color, label=label)
+        self.box().draw(frame, color=color, label=label)
         return frame
 
 
@@ -62,21 +76,33 @@ class GestureRecognizer:
         presence_confidence: float = 0.5,
         tracking_confidence: float = 0.5,
         mirrored: bool = False,
-        stream: bool = True,
+        mode: str = "video",
+        stream: bool | None = None,
         download: bool = True,
     ) -> None:
-        if max_hands <= 0:
-            raise ValueError("max_hands harus lebih dari 0")
+        max_hands = positive_int("max_hands", max_hands)
         if model_path is not None and not Path(model_path).expanduser().is_file():
             raise FileNotFoundError(f"Model tidak ditemukan: {model_path}")
-        for value in (
+        gesture_confidence = confidence(
+            "gesture_confidence",
             gesture_confidence,
+        )
+        detection_confidence = confidence(
+            "detection_confidence",
             detection_confidence,
+        )
+        presence_confidence = confidence(
+            "presence_confidence",
             presence_confidence,
+        )
+        tracking_confidence = confidence(
+            "tracking_confidence",
             tracking_confidence,
-        ):
-            if not 0 <= value <= 1:
-                raise ValueError("Nilai confidence harus antara 0 dan 1")
+        )
+        mirrored = boolean("mirrored", mirrored)
+        download = boolean("download", download)
+
+        self.mode = resolve_running_mode(mode, stream)
 
         try:
             import mediapipe as mp
@@ -88,33 +114,45 @@ class GestureRecognizer:
         self.mp = mp
         self.gesture_confidence = gesture_confidence
         self.mirrored = mirrored
-        self.stream = stream
+        self.stream = self.mode != "image"
         self._last_timestamp = -1
+        self._result_lock = Lock()
+        self._latest_gestures: list[Gesture] = []
+        self.raw_result: Any | None = None
+        self.result_timestamp: int | None = None
+        self._closed = False
         self.model_path = resolve_model(
             "gesture_recognizer",
             model_path,
             download=download,
         )
-        options = mp.tasks.vision.GestureRecognizerOptions(
-            base_options=mp.tasks.BaseOptions(
+        running_modes = {
+            "image": mp.tasks.vision.RunningMode.IMAGE,
+            "video": mp.tasks.vision.RunningMode.VIDEO,
+            "live": mp.tasks.vision.RunningMode.LIVE_STREAM,
+        }
+        option_values = {
+            "base_options": mp.tasks.BaseOptions(
                 model_asset_path=str(self.model_path),
             ),
-            running_mode=(
-                mp.tasks.vision.RunningMode.VIDEO
-                if stream
-                else mp.tasks.vision.RunningMode.IMAGE
-            ),
-            num_hands=max_hands,
-            min_hand_detection_confidence=detection_confidence,
-            min_hand_presence_confidence=presence_confidence,
-            min_tracking_confidence=tracking_confidence,
-        )
+            "running_mode": running_modes[self.mode],
+            "num_hands": max_hands,
+            "min_hand_detection_confidence": detection_confidence,
+            "min_hand_presence_confidence": presence_confidence,
+            "min_tracking_confidence": tracking_confidence,
+        }
+        if self.mode == "live":
+            option_values["result_callback"] = self._handle_live_result
+
+        options = mp.tasks.vision.GestureRecognizerOptions(**option_values)
         recognizer = mp.tasks.vision.GestureRecognizer
         self.model = recognizer.create_from_options(options)
-        self.raw_result: Any | None = None
-        self._closed = False
 
     def detect(self, frame) -> list[Gesture]:
+        """Recognize gestures or return the latest completed live result."""
+        if self._closed:
+            raise RuntimeError("GestureRecognizer sudah ditutup")
+
         try:
             import cv2
         except ImportError as exc:
@@ -125,23 +163,45 @@ class GestureRecognizer:
             image_format=self.mp.ImageFormat.SRGB,
             data=rgb,
         )
-        if self.stream:
-            self.raw_result = self.model.recognize_for_video(
+
+        if self.mode == "live":
+            self.model.recognize_async(image, self._timestamp())
+            return self._latest_result()
+
+        timestamp = None
+        if self.mode == "video":
+            timestamp = self._timestamp()
+            result = self.model.recognize_for_video(
                 image,
-                self._timestamp(),
+                timestamp,
             )
         else:
-            self.raw_result = self.model.recognize(image)
+            result = self.model.recognize(image)
+
         height, width = frame.shape[:2]
+        return self._store_result(result, (width, height), timestamp)
+
+    @property
+    def result_ready(self) -> bool:
+        """True after at least one result has completed."""
+        with self._result_lock:
+            return self.raw_result is not None
+
+    def _gestures_from_result(
+        self,
+        result,
+        frame_size: tuple[int, int],
+    ) -> list[Gesture]:
+        width, height = frame_size
         gestures = []
 
-        for index, raw_hand in enumerate(self.raw_result.hand_landmarks):
+        for index, raw_hand in enumerate(result.hand_landmarks):
             label = "None"
             score = 0.0
             raw_gesture = None
 
-            if index < len(self.raw_result.gestures):
-                categories = self.raw_result.gestures[index]
+            if index < len(result.gestures):
+                categories = result.gestures[index]
                 if categories:
                     raw_gesture = categories[0]
                     score = raw_gesture.score
@@ -152,8 +212,8 @@ class GestureRecognizer:
 
             handedness = "Unknown"
             hand_score = 0.0
-            if index < len(self.raw_result.handedness):
-                categories = self.raw_result.handedness[index]
+            if index < len(result.handedness):
+                categories = result.handedness[index]
                 if categories:
                     handedness = categories[0].category_name or "Unknown"
                     hand_score = categories[0].score
@@ -165,8 +225,8 @@ class GestureRecognizer:
                 }.get(handedness, handedness)
 
             raw_world = None
-            if index < len(self.raw_result.hand_world_landmarks):
-                raw_world = self.raw_result.hand_world_landmarks[index]
+            if index < len(result.hand_world_landmarks):
+                raw_world = result.hand_world_landmarks[index]
 
             hand = Hand(
                 raw_hand,
@@ -187,6 +247,36 @@ class GestureRecognizer:
 
         return gestures
 
+    def _store_result(
+        self,
+        result,
+        frame_size: tuple[int, int],
+        timestamp: int | None,
+    ) -> list[Gesture]:
+        gestures = self._gestures_from_result(result, frame_size)
+
+        with self._result_lock:
+            if self._closed:
+                return []
+            self.raw_result = result
+            self.result_timestamp = timestamp
+            self._latest_gestures = gestures
+
+        return list(gestures)
+
+    def _latest_result(self) -> list[Gesture]:
+        with self._result_lock:
+            return list(self._latest_gestures)
+
+    def _handle_live_result(
+        self,
+        result,
+        output_image,
+        timestamp: int,
+    ) -> None:
+        frame_size = (int(output_image.width), int(output_image.height))
+        self._store_result(result, frame_size, timestamp)
+
     def _timestamp(self) -> int:
         timestamp = time.monotonic_ns() // 1_000_000
         if timestamp <= self._last_timestamp:
@@ -199,8 +289,8 @@ class GestureRecognizer:
 
     def close(self) -> None:
         if not self._closed:
-            self.model.close()
             self._closed = True
+            self.model.close()
 
     def __enter__(self) -> "GestureRecognizer":
         return self

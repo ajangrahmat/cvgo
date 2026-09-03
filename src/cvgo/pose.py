@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any
 
+from ._validation import boolean, choice, confidence
 from .face import LandmarkPoint
+from .geometry import BoundingBox
 
 
 class PoseLandmark(IntEnum):
@@ -56,6 +59,28 @@ def _to_point(raw_point: Any) -> LandmarkPoint:
     )
 
 
+@dataclass(frozen=True)
+class PoseBox(BoundingBox):
+    """Bounding box yang dihitung dari landmark pose yang terlihat."""
+
+    confidence: float = 1.0
+
+    def draw(
+        self,
+        frame,
+        *,
+        color: tuple[int, int, int] = (0, 255, 0),
+        thickness: int = 2,
+        label: str | None = "Person",
+    ):
+        return super().draw(
+            frame,
+            color=color,
+            thickness=thickness,
+            label=label,
+        )
+
+
 class Pose:
     """Hasil 33 landmark pose untuk satu orang utama."""
 
@@ -96,6 +121,74 @@ class Pose:
         visibility = self.points[index].visibility
         return visibility is None or visibility >= confidence
 
+    @property
+    def confidence(self) -> float:
+        """Rata-rata visibility landmark yang tersedia."""
+        values = [
+            point.visibility
+            for point in self.points
+            if point.visibility is not None
+        ]
+        return sum(values) / len(values) if values else 1.0
+
+    def box(
+        self,
+        *,
+        padding: int = 20,
+        min_visibility: float = 0.5,
+    ) -> PoseBox:
+        """Buat bounding box dari landmark tubuh yang cukup terlihat."""
+        if padding < 0:
+            raise ValueError("padding tidak boleh negatif")
+        if not 0 <= min_visibility <= 1:
+            raise ValueError("min_visibility harus antara 0 dan 1")
+
+        points = [
+            point
+            for point in self.points
+            if (
+                point.visibility is None
+                or point.visibility >= min_visibility
+            )
+            and (
+                point.presence is None
+                or point.presence >= min_visibility
+            )
+        ]
+
+        if not points:
+            points = list(self.points)
+
+        xs = [point.x for point in points]
+        ys = [point.y for point in points]
+        x1 = max(0, int(min(xs) * self.width) - padding)
+        y1 = max(0, int(min(ys) * self.height) - padding)
+        x2 = min(
+            self.width - 1,
+            int(max(xs) * self.width) + padding,
+        )
+        y2 = min(
+            self.height - 1,
+            int(max(ys) * self.height) + padding,
+        )
+        visibility = [
+            point.visibility
+            for point in points
+            if point.visibility is not None
+        ]
+        confidence = (
+            sum(visibility) / len(visibility)
+            if visibility
+            else 1.0
+        )
+        return PoseBox(
+            x1,
+            y1,
+            max(0, x2 - x1),
+            max(0, y2 - y1),
+            confidence,
+        )
+
     def draw(
         self,
         frame,
@@ -130,6 +223,22 @@ class PoseTracker:
         segmentation: bool = False,
         static: bool = False,
     ) -> None:
+        model_complexity = choice(
+            "model_complexity",
+            model_complexity,
+            (0, 1, 2),
+        )
+        detection_confidence = confidence(
+            "detection_confidence",
+            detection_confidence,
+        )
+        tracking_confidence = confidence(
+            "tracking_confidence",
+            tracking_confidence,
+        )
+        smooth = boolean("smooth", smooth)
+        segmentation = boolean("segmentation", segmentation)
+        static = boolean("static", static)
         try:
             import mediapipe as mp
         except ImportError as exc:

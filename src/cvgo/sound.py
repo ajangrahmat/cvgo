@@ -6,6 +6,8 @@ import platform
 import threading
 import time
 
+from ._validation import non_negative_number, positive_int
+
 
 class Alarm:
     """Alarm sederhana dengan cooldown agar tidak bertumpuk."""
@@ -18,10 +20,10 @@ class Alarm:
         repeat: int = 3,
         cooldown: float = 0.8,
     ) -> None:
-        self.frequency = frequency
-        self.duration = duration
-        self.repeat = repeat
-        self.cooldown = cooldown
+        self.frequency = positive_int("frequency", frequency)
+        self.duration = positive_int("duration", duration)
+        self.repeat = positive_int("repeat", repeat)
+        self.cooldown = non_negative_number("cooldown", cooldown)
         self.last_triggered = 0.0
         self.busy = False
 
@@ -65,4 +67,3 @@ class Alarm:
                 time.sleep(0.08)
         finally:
             self.busy = False
-

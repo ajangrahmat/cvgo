@@ -4,7 +4,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector()
+detector = go.ObjectDetector(mode="live")
 fps = go.FPS()
 
 while True:
@@ -19,7 +19,7 @@ while True:
         item.draw(frame)
 
     go.put_text(frame, f"Objects: {len(objects)}")
-    go.put_text(frame, f"FPS: {fps.read():.1f}", (20, 70))
+    go.put_text(frame, f"Loop FPS: {fps.read():.1f}", (20, 70))
 
     if not camera.show(frame, title="CVGO Object Detection"):
         break

@@ -4,7 +4,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(allow=["person"])
+detector = go.ObjectDetector(allow=["person"], mode="live")
 presence_timer = go.Timer(0.5)
 alarm = go.Alarm()
 

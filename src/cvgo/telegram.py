@@ -10,8 +10,18 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
+from threading import Lock, RLock
 from typing import Any
+
+from ._validation import (
+    boolean,
+    non_negative_number,
+    positive_int,
+    positive_number,
+)
+from ._version import USER_AGENT
 
 
 class Telegram:
@@ -36,10 +46,10 @@ class Telegram:
             raise ValueError(
                 "Isi token atau environment variable CVGO_TELEGRAM_TOKEN"
             )
-        if cooldown < 0:
-            raise ValueError("cooldown tidak boleh negatif")
-        if timeout <= 0:
-            raise ValueError("timeout harus lebih dari 0")
+        cooldown = non_negative_number("cooldown", cooldown)
+        timeout = positive_number("timeout", timeout)
+        silent = boolean("silent", silent)
+        protect = boolean("protect", protect)
 
         self.token = token
         self.chat_id = str(chat_id) if chat_id is not None else None
@@ -50,6 +60,11 @@ class Telegram:
         self.last_response: Any | None = None
         self.last_error: str | None = None
         self._sent_at: dict[str, float] = {}
+        self._operation_lock = RLock()
+        self._executor_lock = Lock()
+        self._executor: ThreadPoolExecutor | None = None
+        self._accepting = True
+        self._closed = False
 
     @property
     def configured(self) -> bool:
@@ -62,15 +77,16 @@ class Telegram:
         now: float | None = None,
     ) -> bool:
         """Periksa apakah cooldown untuk sebuah jenis notifikasi selesai."""
-        if self.cooldown == 0:
-            return True
+        with self._operation_lock:
+            if self.cooldown == 0:
+                return True
 
-        last_sent = self._sent_at.get(key)
-        if last_sent is None:
-            return True
+            last_sent = self._sent_at.get(key)
+            if last_sent is None:
+                return True
 
-        now = time.monotonic() if now is None else now
-        return now - last_sent >= self.cooldown
+            now = time.monotonic() if now is None else now
+            return now - last_sent >= self.cooldown
 
     def remaining(
         self,
@@ -79,22 +95,29 @@ class Telegram:
         now: float | None = None,
     ) -> float:
         """Kembalikan sisa cooldown dalam detik."""
-        last_sent = self._sent_at.get(key)
-        if last_sent is None:
-            return 0.0
+        with self._operation_lock:
+            last_sent = self._sent_at.get(key)
+            if last_sent is None:
+                return 0.0
 
-        now = time.monotonic() if now is None else now
-        return max(0.0, self.cooldown - (now - last_sent))
+            now = time.monotonic() if now is None else now
+            return max(0.0, self.cooldown - (now - last_sent))
 
     def reset(self, key: str | None = None) -> None:
         """Reset satu cooldown atau seluruh cooldown notifikasi."""
-        if key is None:
-            self._sent_at.clear()
-        else:
-            self._sent_at.pop(key, None)
+        with self._operation_lock:
+            if key is None:
+                self._sent_at.clear()
+            else:
+                self._sent_at.pop(key, None)
 
     def find_chat_id(self) -> str | None:
         """Ambil chat ID terbaru setelah pengguna mengirim pesan ke bot."""
+        with self._operation_lock:
+            self._ensure_open()
+            return self._find_chat_id()
+
+    def _find_chat_id(self) -> str | None:
         updates = self._request(
             "getUpdates",
             urllib.parse.urlencode({"timeout": 0}).encode(),
@@ -132,6 +155,34 @@ class Telegram:
         parse_mode: str | None = None,
     ) -> bool:
         """Kirim satu pesan teks."""
+        with self._operation_lock:
+            self._ensure_open()
+            return self._send_message(
+                text,
+                key=key,
+                force=force,
+                silent=silent,
+                protect=protect,
+                parse_mode=parse_mode,
+            )
+
+    def _send_message(
+        self,
+        text: str,
+        *,
+        key: str,
+        force: bool,
+        silent: bool | None,
+        protect: bool | None,
+        parse_mode: str | None,
+    ) -> bool:
+        if not isinstance(text, str):
+            raise TypeError("text harus berupa string")
+        force = boolean("force", force)
+        if silent is not None:
+            silent = boolean("silent", silent)
+        if protect is not None:
+            protect = boolean("protect", protect)
         if not 1 <= len(text) <= 4096:
             raise ValueError("Panjang pesan harus antara 1 dan 4096 karakter")
         if not self._allowed(key, force):
@@ -171,9 +222,44 @@ class Telegram:
         parse_mode: str | None = None,
     ) -> bool:
         """Kirim frame OpenCV, bytes gambar, atau file gambar."""
+        with self._operation_lock:
+            self._ensure_open()
+            return self._send_photo(
+                photo,
+                caption,
+                key=key,
+                force=force,
+                filename=filename,
+                quality=quality,
+                silent=silent,
+                protect=protect,
+                parse_mode=parse_mode,
+            )
+
+    def _send_photo(
+        self,
+        photo,
+        caption: str,
+        *,
+        key: str,
+        force: bool,
+        filename: str | None,
+        quality: int,
+        silent: bool | None,
+        protect: bool | None,
+        parse_mode: str | None,
+    ) -> bool:
+        if not isinstance(caption, str):
+            raise TypeError("caption harus berupa string")
+        force = boolean("force", force)
+        if silent is not None:
+            silent = boolean("silent", silent)
+        if protect is not None:
+            protect = boolean("protect", protect)
         if len(caption) > 1024:
             raise ValueError("Caption maksimal 1024 karakter")
-        if not 1 <= quality <= 100:
+        quality = positive_int("quality", quality)
+        if quality > 100:
             raise ValueError("quality harus antara 1 dan 100")
         if not self._allowed(key, force):
             return False
@@ -211,6 +297,93 @@ class Telegram:
 
         self._mark_sent(key)
         return True
+
+    def send_message_async(
+        self,
+        text: str,
+        *,
+        key: str = "message",
+        force: bool = False,
+        silent: bool | None = None,
+        protect: bool | None = None,
+        parse_mode: str | None = None,
+    ) -> Future[bool]:
+        """Antrekan pesan tanpa menahan loop deteksi."""
+        return self._submit(
+            self.send_message,
+            text,
+            key=key,
+            force=force,
+            silent=silent,
+            protect=protect,
+            parse_mode=parse_mode,
+        )
+
+    def send_photo_async(
+        self,
+        photo,
+        caption: str = "",
+        *,
+        key: str = "photo",
+        force: bool = False,
+        filename: str | None = None,
+        quality: int = 85,
+        silent: bool | None = None,
+        protect: bool | None = None,
+        parse_mode: str | None = None,
+    ) -> Future[bool]:
+        """Antrekan foto; frame OpenCV disalin sebelum diproses di thread."""
+        if not isinstance(
+            photo,
+            (str, os.PathLike, bytes, bytearray, memoryview),
+        ) and hasattr(photo, "copy"):
+            photo = photo.copy()
+        return self._submit(
+            self.send_photo,
+            photo,
+            caption,
+            key=key,
+            force=force,
+            filename=filename,
+            quality=quality,
+            silent=silent,
+            protect=protect,
+            parse_mode=parse_mode,
+        )
+
+    def _submit(self, function, *args, **kwargs) -> Future[bool]:
+        with self._executor_lock:
+            if not self._accepting:
+                raise RuntimeError("Telegram sudah ditutup")
+            if self._executor is None:
+                self._executor = ThreadPoolExecutor(
+                    max_workers=1,
+                    thread_name_prefix="cvgo-telegram",
+                )
+            return self._executor.submit(function, *args, **kwargs)
+
+    def _ensure_open(self) -> None:
+        if self._closed:
+            raise RuntimeError("Telegram sudah ditutup")
+
+    def close(self, *, wait: bool = True) -> None:
+        """Tutup antrean background; ``wait=False`` membatalkan antrean tersisa."""
+        with self._executor_lock:
+            if not self._accepting:
+                return
+            self._accepting = False
+            executor = self._executor
+            self._executor = None
+        if executor is not None:
+            executor.shutdown(wait=wait, cancel_futures=not wait)
+        self._closed = True
+
+    def __enter__(self) -> "Telegram":
+        self._ensure_open()
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        self.close()
 
     def _message_fields(
         self,
@@ -331,7 +504,7 @@ class Telegram:
             data=data,
             headers={
                 "Content-Type": content_type,
-                "User-Agent": "CVGO/0.1",
+                "User-Agent": USER_AGENT,
             },
             method="POST",
         )
