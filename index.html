@@ -1296,7 +1296,6 @@ if result:
     confidence=0.65,
     max_objects=3,
     allow=["person", "car"],
-    mode="live",
 )
 
 objects = detector.detect(frame)
@@ -1361,7 +1360,6 @@ recognizer = go.GestureRecognizer(
     model,
     max_hands=1,
     gesture_confidence=0.7,
-    mode="live",
 )</code></pre>
               </div>
               <h3 class="subheading">Model download parameters</h3>
@@ -2994,7 +2992,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(mode="live")
+detector = go.ObjectDetector()
 fps = go.FPS()
 
 while True:
@@ -3033,7 +3031,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(mode="live")
+detector = go.ObjectDetector()
 fps = go.FPS()
 
 try:
@@ -3094,7 +3092,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(allow=["person"], mode="live")
+detector = go.ObjectDetector(allow=["person"])
 presence_timer = go.Timer(0.5)
 alarm = go.Alarm()
 
@@ -3139,7 +3137,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(allow=["person"], mode="live")
+detector = go.ObjectDetector(allow=["person"])
 presence_timer = go.Timer(0.5)
 alarm = go.Alarm()
 fps = go.FPS()
@@ -3201,7 +3199,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-recognizer = go.GestureRecognizer(mode="live")
+recognizer = go.GestureRecognizer()
 
 while True:
     frame = camera.read()
@@ -3236,7 +3234,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-recognizer = go.GestureRecognizer(mode="live")
+recognizer = go.GestureRecognizer()
 fps = go.FPS()
 
 try:
@@ -3476,7 +3474,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(allow=["person"], mode="live")
+detector = go.ObjectDetector(allow=["person"])
 telegram = go.Telegram()
 presence_timer = go.Timer(0.5)
 notified = False
@@ -3535,7 +3533,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(allow=["person"], mode="live")
+detector = go.ObjectDetector(allow=["person"])
 telegram = go.Telegram()
 presence_timer = go.Timer(0.5)
 fps = go.FPS()

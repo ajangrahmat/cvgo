@@ -4,7 +4,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(mode="live")
+detector = go.ObjectDetector()
 fps = go.FPS()
 
 while True:

@@ -4,7 +4,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-recognizer = go.GestureRecognizer(mode="live")
+recognizer = go.GestureRecognizer()
 fps = go.FPS()
 
 try:

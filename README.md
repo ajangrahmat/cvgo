@@ -154,7 +154,7 @@ arduino = go.Serial("COM5", baud=115200)
 timer = go.Timer(1.5)
 hands = go.HandTracker(max_hands=1, detection_confidence=0.7)
 pose = go.PoseTracker(model_complexity=0)
-objects = go.ObjectDetector(confidence=0.7, allow=["person"], mode="live")
+objects = go.ObjectDetector(confidence=0.7, allow=["person"])
 telegram = go.Telegram(cooldown=60)
 ```
 
@@ -427,7 +427,6 @@ detector = go.ObjectDetector(
     confidence=0.65,
     max_objects=3,
     allow=["person", "car"],
-    mode="live",
 )
 ```
 
@@ -458,7 +457,6 @@ detector = go.ObjectDetector(
 recognizer = go.GestureRecognizer(
     max_hands=1,
     gesture_confidence=0.7,
-    mode="live",
 )
 ```
 
@@ -470,7 +468,7 @@ model = go.download_model(
     directory="models",
     timeout=180,
 )
-recognizer = go.GestureRecognizer(model, mode="live")
+recognizer = go.GestureRecognizer(model)
 ```
 
 | `download_model()` parameter | Default | Description |
@@ -908,7 +906,7 @@ The value is updated every second by default. The interval can be changed with
 result of the current frame. For a responsive camera loop, select live mode:
 
 ```python
-detector = go.ObjectDetector(mode="live")
+detector = go.ObjectDetector()
 ```
 
 In live mode, `detect(frame)` submits a frame and immediately returns the latest
@@ -932,7 +930,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(mode="live")
+detector = go.ObjectDetector()
 
 while True:
     frame = camera.read()
@@ -983,7 +981,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-recognizer = go.GestureRecognizer(mode="live")
+recognizer = go.GestureRecognizer()
 
 while True:
     frame = camera.read()
