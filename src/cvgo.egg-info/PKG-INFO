@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: cvgo
-Version: 0.2.1
+Version: 0.3.0
 Summary: Simple Computer Vision for Python
 Author: Ajang Rahmat
 License-Expression: MIT
@@ -24,6 +24,13 @@ Requires-Dist: pyserial>=3.5
 Provides-Extra: dev
 Requires-Dist: build>=1.2; extra == "dev"
 Requires-Dist: twine>=5; extra == "dev"
+Provides-Extra: mqtt
+Requires-Dist: paho-mqtt>=2.0; extra == "mqtt"
+Provides-Extra: websocket
+Requires-Dist: websocket-client>=1.8; extra == "websocket"
+Provides-Extra: robotics
+Requires-Dist: paho-mqtt>=2.0; extra == "robotics"
+Requires-Dist: websocket-client>=1.8; extra == "robotics"
 Dynamic: license-file
 
 <p align="center">
@@ -59,7 +66,7 @@ CVGO 0.2 pins the core versions that have been tested:
 
 | Package | Version |
 |---|---|
-| CVGO | `0.2.1` |
+| CVGO | `0.3.0` |
 | OpenCV Contrib | `4.11.0.86` |
 | NumPy | `1.26.4` |
 | MediaPipe | `0.10.21` |
@@ -125,6 +132,7 @@ from cvgo import Camera, ObjectDetector, Telegram
 | Driver monitor | Modular components | Drowsiness, head direction, and alarms |
 | Arduino | `Serial` | Serial communication, sync or queued |
 | Telegram | `Telegram` | Text and photos, sync or non-blocking |
+| Robotics connectivity | `MqttClient`, `WebSocketClient` | Optional JSON messaging |
 | Shared geometry | `BoundingBox` | Coordinates, center, area, and drawing |
 
 This is the full coverage of CVGO 0.2 for camera and learning projects.
@@ -182,7 +190,7 @@ arduino = go.Serial("COM5", baud=115200)
 timer = go.Timer(1.5)
 hands = go.HandTracker(max_hands=1, detection_confidence=0.7)
 pose = go.PoseTracker(model_complexity=0)
-objects = go.ObjectDetector(confidence=0.7, allow=["person"], mode="live")
+objects = go.ObjectDetector(confidence=0.7, allow=["person"])
 telegram = go.Telegram(cooldown=60)
 ```
 
@@ -455,7 +463,6 @@ detector = go.ObjectDetector(
     confidence=0.65,
     max_objects=3,
     allow=["person", "car"],
-    mode="live",
 )
 ```
 
@@ -486,7 +493,6 @@ detector = go.ObjectDetector(
 recognizer = go.GestureRecognizer(
     max_hands=1,
     gesture_confidence=0.7,
-    mode="live",
 )
 ```
 
@@ -498,7 +504,7 @@ model = go.download_model(
     directory="models",
     timeout=180,
 )
-recognizer = go.GestureRecognizer(model, mode="live")
+recognizer = go.GestureRecognizer(model)
 ```
 
 | `download_model()` parameter | Default | Description |
@@ -936,7 +942,7 @@ The value is updated every second by default. The interval can be changed with
 result of the current frame. For a responsive camera loop, select live mode:
 
 ```python
-detector = go.ObjectDetector(mode="live")
+detector = go.ObjectDetector()
 ```
 
 In live mode, `detect(frame)` submits a frame and immediately returns the latest
@@ -960,7 +966,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-detector = go.ObjectDetector(mode="live")
+detector = go.ObjectDetector()
 
 while True:
     frame = camera.read()
@@ -1011,7 +1017,7 @@ import cvgo as go
 
 
 camera = go.Camera()
-recognizer = go.GestureRecognizer(mode="live")
+recognizer = go.GestureRecognizer()
 
 while True:
     frame = camera.read()
@@ -1161,8 +1167,8 @@ camera.close()
 landmarker.close()
 ```
 
-Bagian penting tetap terlihat: EAR, threshold, smoothing, timer, status, alarm,
-dan GUI.
+The important values remain visible: EAR, threshold, smoothing, timer, status,
+alarm, and GUI.
 
 ## Serial Arduino
 
@@ -1180,24 +1186,24 @@ arduino.close()
 
 ## Telegram
 
-Buat bot melalui `@BotFather`, lalu simpan token dan chat ID di environment
-variable. Jangan menulis token asli di source code atau repository.
+Create a bot through `@BotFather`, then store the token and chat ID in environment
+variables. Do not write the real token in source code or the repository.
 
 Windows PowerShell:
 
 ```powershell
-$env:CVGO_TELEGRAM_TOKEN="TOKEN_DARI_BOTFATHER"
+$env:CVGO_TELEGRAM_TOKEN="TOKEN_FROM_BOTFATHER"
 $env:CVGO_TELEGRAM_CHAT_ID="CHAT_ID"
 ```
 
 Linux/macOS:
 
 ```bash
-export CVGO_TELEGRAM_TOKEN="TOKEN_DARI_BOTFATHER"
+export CVGO_TELEGRAM_TOKEN="TOKEN_FROM_BOTFATHER"
 export CVGO_TELEGRAM_CHAT_ID="CHAT_ID"
 ```
 
-Jika chat ID belum diketahui, kirim `/start` ke bot lalu jalankan:
+If the chat ID is unknown, send `/start` to the bot and then run:
 
 ```python
 import cvgo as go
@@ -1207,7 +1213,7 @@ telegram = go.Telegram(token="TOKEN_DARI_BOTFATHER")
 print(telegram.find_chat_id())
 ```
 
-Mengirim teks dan frame OpenCV:
+Send text and an OpenCV frame:
 
 ```python
 telegram = go.Telegram()
@@ -1215,64 +1221,98 @@ telegram = go.Telegram()
 telegram.send_message("CVGO aktif")
 telegram.send_photo_async(
     frame,
-    "Peringatan: orang terdeteksi.",
+    "Warning: person detected.",
     key="security",
 )
 telegram.close()
 ```
 
-`send_photo()` dan `send_photo_async()` menerima frame OpenCV, bytes, atau path
-file gambar. Cooldown
-default 30 detik mencegah satu kondisi mengirim terlalu banyak foto. Gunakan
-`key` berbeda untuk setiap jenis peringatan atau ubah dengan
-`go.Telegram(cooldown=60)`. Status pengiriman berupa `True`/`False`; detail
-kegagalan tersedia melalui `telegram.last_error`.
+`send_photo()` and `send_photo_async()` accept an OpenCV frame, bytes, or an
+image file path. The default 30-second cooldown prevents one condition from
+sending too many photos. Use a different `key` for each warning type or change
+the cooldown with `go.Telegram(cooldown=60)`. The send status is `True`/`False`;
+failure details are available through `telegram.last_error`.
 
-Pada proyek deteksi kantuk, pemakaiannya tetap sederhana:
+In a drowsiness detection project, usage remains simple:
 
 ```python
 if drowsy:
     telegram.send_photo_async(
         frame,
-        "Peringatan: pengemudi mengantuk.",
+        "Warning: driver is drowsy.",
         key="drowsy",
     )
 ```
 
-Contoh lengkap deteksi orang dan pengiriman foto berada di
+The complete person detection and photo sending example is available in
 `examples/17_telegram_security.py`.
 
-## Proyek akhir Driver Monitor
+## Driver Monitor Capstone Project
 
-Contoh lengkap proyek akhir berada di:
+The complete capstone project example is available in:
 
 ```text
 examples/08_driver_monitor.py
 ```
 
-Proyek tersebut menggabungkan:
+The project combines:
 
-- EAR dan smoothing;
-- deteksi noleh serta tunduk;
-- timer untuk setiap kondisi;
-- deteksi wajah hilang;
-- bitmask serial Arduino;
-- foto peringatan Telegram dapat ditambahkan dengan `go.Telegram()`;
-- alarm suara;
-- status dan nilai sensor pada GUI;
-- penghitung FPS.
+- EAR and smoothing;
+- head-turn and head-down detection;
+- a timer for each condition;
+- missing-face detection;
+- an Arduino serial bitmask;
+- optional Telegram warning photos with `go.Telegram()`;
+- a sound alarm;
+- status and sensor values in the GUI;
+- an FPS counter.
 
-Algoritmanya disusun dari komponen kecil CVGO, bukan satu fungsi instan.
+The algorithm is built from small CVGO components rather than one monolithic
+function.
 
-## Shortcut opsional
+## Optional Shortcut
 
-`DriverMonitor` tetap tersedia bagi pengguna yang membutuhkan prototipe cepat:
+`DriverMonitor` remains available for users who need a quick prototype:
 
 ```python
 from cvgo import DriverMonitor
 ```
 
-Contoh pembelajaran utama tidak menggunakannya agar algoritma tetap terlihat.
+The main learning example does not use it so that the algorithm remains visible.
+
+## Robotics Connectivity
+
+MQTT and WebSocket clients are optional integrations for robots, devices, and
+real-time dashboards. Install them with:
+
+```bash
+pip install "cvgo[robotics]"
+```
+
+Publish structured MQTT messages as JSON:
+
+```python
+import cvgo as go
+
+
+with go.MqttClient(host="localhost", client_id="cvgo-camera") as mqtt:
+    mqtt.publish("robot/camera/state", {"person_detected": True})
+```
+
+Send and receive JSON over a WebSocket:
+
+```python
+import cvgo as go
+
+
+with go.WebSocketClient("ws://localhost:8080") as websocket:
+    websocket.send({"type": "person_detected", "confidence": 0.94})
+    message = websocket.receive()
+```
+
+Both clients support `connect`, `reconnect`, `close`, context managers, and
+asynchronous sending with `publish_async()` or `send_async()`. Connections are
+not opened automatically unless `connect=True` is passed.
 
 ## Terminal / CLI Examples
 
@@ -1292,7 +1332,7 @@ Press `Ctrl+C` to stop. To use camera `4`, change the example to:
 camera = go.Camera(4)
 ```
 
-See [`examples/cli/README.md`](examples/cli/README.md) for all 17 CLI examples.
+See [`examples/cli/README.md`](examples/cli/README.md) for all 20 CLI examples.
 
 ## Installation Diagnostics
 
@@ -1347,19 +1387,19 @@ examples/
     └── 17_telegram_security.py
 ```
 
-## Pengembangan lokal
+## Local Development
 
 ```bash
 pip install -e .
 ```
 
-Untuk alat build dan publikasi:
+For build and publishing tools:
 
 ```bash
 pip install -e ".[dev]"
 ```
 
-Panduan TestPyPI dan PyPI tersedia di [`PUBLISHING.md`](PUBLISHING.md).
+TestPyPI and PyPI instructions are available in [`PUBLISHING.md`](PUBLISHING.md).
 
 ## Lisensi
 

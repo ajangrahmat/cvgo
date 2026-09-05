@@ -42,7 +42,10 @@ python -m cvgo check --camera 4
 | `14_gesture_recognition.py` | Gesture labels and scores |
 | `15_holistic_tracking.py` | Face, pose, and hand status |
 | `16_selfie_segmentation.py` | Foreground coverage |
-| `17_telegram_security.py` | Person alert with queued Telegram photo |
+| `17_telegram_security.py` | Pose security alert with queued Telegram photo |
+| `18_telegram_person_security.py` | Person detection security alert with queued Telegram photo |
+| `19_mqtt_robot.py` | Publish pose status to an MQTT robot topic |
+| `20_websocket_robot.py` | Send pose status to a WebSocket robot service |
 
 These are Python scripts, not commands such as `cvgo drowsy`. They use the same
 public API as the GUI examples and work after `pip install cvgo`.

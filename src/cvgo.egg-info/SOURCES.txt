@@ -23,6 +23,9 @@ examples/14_gesture_recognition.py
 examples/15_holistic_tracking.py
 examples/16_selfie_segmentation.py
 examples/17_telegram_security.py
+examples/18_telegram_person_security.py
+examples/19_mqtt_robot.py
+examples/20_websocket_robot.py
 examples/cli/01_camera.py
 examples/cli/02_face_detection.py
 examples/cli/03_face_landmarks.py
@@ -40,6 +43,9 @@ examples/cli/14_gesture_recognition.py
 examples/cli/15_holistic_tracking.py
 examples/cli/16_selfie_segmentation.py
 examples/cli/17_telegram_security.py
+examples/cli/18_telegram_person_security.py
+examples/cli/19_mqtt_robot.py
+examples/cli/20_websocket_robot.py
 examples/cli/README.md
 src/cvgo/__init__.py
 src/cvgo/__main__.py
@@ -57,6 +63,7 @@ src/cvgo/hand.py
 src/cvgo/holistic.py
 src/cvgo/metrics.py
 src/cvgo/models.py
+src/cvgo/mqtt.py
 src/cvgo/object_detection.py
 src/cvgo/pose.py
 src/cvgo/segmentation.py
@@ -64,12 +71,14 @@ src/cvgo/serial_io.py
 src/cvgo/sound.py
 src/cvgo/telegram.py
 src/cvgo/timing.py
+src/cvgo/websocket.py
 src/cvgo.egg-info/PKG-INFO
 src/cvgo.egg-info/SOURCES.txt
 src/cvgo.egg-info/dependency_links.txt
 src/cvgo.egg-info/requires.txt
 src/cvgo.egg-info/top_level.txt
 tests/test_cli_examples.py
+tests/test_connectivity.py
 tests/test_core.py
 tests/test_extended.py
 tests/test_improvements.py

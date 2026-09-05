@@ -6,3 +6,13 @@ pyserial>=3.5
 [dev]
 build>=1.2
 twine>=5
+
+[mqtt]
+paho-mqtt>=2.0
+
+[robotics]
+paho-mqtt>=2.0
+websocket-client>=1.8
+
+[websocket]
+websocket-client>=1.8

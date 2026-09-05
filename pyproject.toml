@@ -41,6 +41,16 @@ dev = [
     "build>=1.2",
     "twine>=5",
 ]
+mqtt = [
+    "paho-mqtt>=2.0",
+]
+websocket = [
+    "websocket-client>=1.8",
+]
+robotics = [
+    "paho-mqtt>=2.0",
+    "websocket-client>=1.8",
+]
 
 [project.urls]
 Homepage = "https://kelasrobot.com"

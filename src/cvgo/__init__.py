@@ -23,6 +23,7 @@ from .hand import Hand, HandBox, HandLandmark, HandTracker
 from .holistic import HolisticResult, HolisticTracker
 from .metrics import eye_ratio, pitch_ratio, yaw_ratio
 from .models import download_model, model_cache_dir, model_path
+from .mqtt import MqttClient
 from .object_detection import DetectedObject, ObjectBox, ObjectDetector
 from .pose import Pose, PoseBox, PoseLandmark, PoseTracker
 from .segmentation import SegmentationResult, SelfieSegmenter
@@ -30,6 +31,7 @@ from .serial_io import Serial
 from .sound import Alarm
 from .telegram import Telegram
 from .timing import FPS, Smoother, Timer
+from .websocket import WebSocketClient
 
 __all__ = [
     "Alarm",
@@ -60,6 +62,7 @@ __all__ = [
     "LandmarkFace",
     "LandmarkPoint",
     "MonitorResult",
+    "MqttClient",
     "ObjectBox",
     "ObjectDetector",
     "Pose",
@@ -73,6 +76,7 @@ __all__ = [
     "system_info",
     "Telegram",
     "Timer",
+    "WebSocketClient",
     "eye_ratio",
     "download_model",
     "model_cache_dir",

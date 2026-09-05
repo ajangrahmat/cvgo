@@ -1,10 +1,10 @@
-"""CLI example 17: send a Telegram photo when a pose is detected."""
+"""CLI example 18: send a Telegram photo when people are detected."""
 
 import cvgo as go
 
 
 camera = go.Camera()
-tracker = go.PoseTracker(model_complexity=0)
+detector = go.ObjectDetector(allow=["person"])
 telegram = go.Telegram()
 presence_timer = go.Timer(0.5)
 fps = go.FPS()
@@ -19,8 +19,8 @@ try:
         if frame is None:
             break
 
-        pose = tracker.detect(frame)
-        alert = presence_timer.check(pose is not None)
+        people = detector.detect(frame)
+        alert = presence_timer.check(bool(people))
 
         if pending is not None and pending.done():
             sent = pending.result()
@@ -30,8 +30,8 @@ try:
         if alert and not notified and pending is None:
             pending = telegram.send_photo_async(
                 frame,
-                "Warning: person detected.",
-                key="security",
+                f"Warning: {len(people)} person(s) detected.",
+                key="person-security",
             )
             telegram_status = "QUEUED"
             notified = True
@@ -39,9 +39,9 @@ try:
             notified = False
             telegram_status = "WAITING"
 
-        status = "PERSON DETECTED" if alert else "SAFE"
+        status = "PEOPLE DETECTED" if alert else "SAFE"
         info = (
-            f"Security: {status} | Pose: {'YES' if pose else 'NO'} | "
+            f"Security: {status} | People: {len(people)} | "
             f"Telegram: {telegram_status} | "
             f"Loop FPS: {fps.read():.1f}"
         )
@@ -55,5 +55,5 @@ except KeyboardInterrupt:
 finally:
     print()
     camera.close()
-    tracker.close()
+    detector.close()
     telegram.close()

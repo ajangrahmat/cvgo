@@ -2,6 +2,14 @@
 
 All notable changes to CVGO are documented here.
 
+## 0.3.0
+
+- Added optional `MqttClient` and `WebSocketClient` integrations for robotics,
+  device messaging, and real-time dashboards.
+- Added JSON payload support, reconnect handling, async sending, subscriptions,
+  receive operations, and context-manager lifecycle support for connectivity
+  clients.
+
 ## 0.2.1
 
 - Made `FaceDetector` use lightweight MediaPipe Face Detection by default while

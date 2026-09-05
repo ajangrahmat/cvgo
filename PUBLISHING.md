@@ -83,8 +83,8 @@ python -m twine check dist/*
 A normal result includes:
 
 ```text
-dist/cvgo-0.2.1.tar.gz
-dist/cvgo-0.2.1-py3-none-any.whl
+dist/cvgo-0.3.0.tar.gz
+dist/cvgo-0.3.0-py3-none-any.whl
 ```
 
 ## 6. Test on TestPyPI

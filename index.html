@@ -786,7 +786,7 @@ python -m cvgo check --camera 4</code></pre>
             <table>
               <thead><tr><th>Package</th><th>Version</th></tr></thead>
               <tbody>
-                <tr><td>CVGO</td><td><code>0.2.1</code></td></tr>
+                <tr><td>CVGO</td><td><code>0.3.0</code></td></tr>
                 <tr><td>OpenCV Contrib</td><td><code>4.11.0.86</code></td></tr>
                 <tr><td>NumPy</td><td><code>1.26.4</code></td></tr>
                 <tr><td>MediaPipe</td><td><code>0.10.21</code></td></tr>
@@ -1508,6 +1508,46 @@ frame = result.blur(frame, amount=51, threshold=0.6)</code></pre>
                 Call <code>telegram.close()</code> after the loop; its
                 <code>wait=True</code> default finishes queued sends.
               </p>
+
+              <p class="signature">go.MqttClient(host="localhost", port=1883, *, client_id="", username=None, password=None, keepalive=60, reconnect_after=5.0, tls=False, connect=False)</p>
+              <p class="signature">go.WebSocketClient(url, *, timeout=10.0, reconnect_after=5.0, connect=False)</p>
+              <p>
+                MQTT publishes and subscriptions use JSON for structured values;
+                WebSocket <code>send()</code> and <code>receive()</code> do the same.
+                Both clients support <code>connect()</code>,
+                <code>reconnect()</code>, <code>close()</code>, context managers,
+                and asynchronous sending. Install these optional integrations with
+                <code>pip install "cvgo[robotics]"</code>.
+              </p>
+              <div class="code-shell">
+                <div class="code-bar">
+                  <span>MQTT robot state</span>
+                  <button type="button" class="copy" data-copy
+                    aria-label="Copy MQTT example">
+                    <span aria-live="polite">Copy</span>
+                  </button>
+                </div>
+                <pre tabindex="0"><code class="language-python">import cvgo as go
+
+
+with go.MqttClient(host="localhost", client_id="cvgo-camera") as mqtt:
+    mqtt.publish("robot/camera/state", {"person_detected": True})</code></pre>
+              </div>
+              <div class="code-shell">
+                <div class="code-bar">
+                  <span>WebSocket robot event</span>
+                  <button type="button" class="copy" data-copy
+                    aria-label="Copy WebSocket example">
+                    <span aria-live="polite">Copy</span>
+                  </button>
+                </div>
+                <pre tabindex="0"><code class="language-python">import cvgo as go
+
+
+with go.WebSocketClient("ws://localhost:8080") as websocket:
+    websocket.send({"type": "person_detected", "confidence": 0.94})
+    message = websocket.receive()</code></pre>
+              </div>
 
               <p class="signature">go.Alarm(*, frequency=1500, duration=180, repeat=3, cooldown=0.8)</p>
               <div class="table-wrap">
@@ -3468,7 +3508,149 @@ finally:
       <span aria-live="polite">Copy</span>
     </button>
   </div>
-  <pre tabindex="0"><code class="language-python">"""Example 17: send a Telegram photo when a person is detected."""
+  <pre tabindex="0"><code class="language-python">"""Example 17: send a Telegram photo when a pose is detected."""
+
+import cvgo as go
+
+
+camera = go.Camera()
+tracker = go.PoseTracker(model_complexity=0)
+telegram = go.Telegram()
+presence_timer = go.Timer(0.5)
+notified = False
+pending = None
+
+while True:
+    frame = camera.read()
+
+    if frame is None:
+        break
+
+    pose = tracker.detect(frame)
+    alert = presence_timer.check(pose is not None)
+
+    if pending is not None and pending.done():
+        if not pending.result():
+            print(f"Telegram: {telegram.last_error}")
+        pending = None
+
+    if pose:
+        pose.box(padding=30).draw(frame, color=(0, 0, 255), label="Person")
+
+    status = "PERSON DETECTED" if alert else "SAFE"
+    color = (0, 0, 255) if alert else (0, 255, 0)
+    go.put_text(frame, f"Status: {status}", color=color)
+
+    if alert and not notified and pending is None:
+        pending = telegram.send_photo_async(frame, "Warning: person detected.", key="security")
+
+    notified = alert
+
+    if not camera.show(frame, title="CVGO Telegram Security"):
+        break
+
+camera.close()
+tracker.close()
+telegram.close()</code></pre>
+</div>
+    </div>
+    <div id="telegram-security-cli" role="tabpanel"
+      aria-labelledby="telegram-security-cli-tab" class="panel" hidden>
+      <div class="code-shell">
+  <div class="code-bar">
+    <span>examples/cli/17_telegram_security.py</span>
+    <button type="button" class="copy" data-copy aria-label="Copy examples/cli/17_telegram_security.py">
+      <span aria-live="polite">Copy</span>
+    </button>
+  </div>
+  <pre tabindex="0"><code class="language-python">"""CLI example 17: send a Telegram photo when a pose is detected."""
+
+import cvgo as go
+
+
+camera = go.Camera()
+tracker = go.PoseTracker(model_complexity=0)
+telegram = go.Telegram()
+presence_timer = go.Timer(0.5)
+fps = go.FPS()
+notified = False
+telegram_status = "WAITING"
+pending = None
+
+try:
+    while True:
+        frame = camera.read()
+
+        if frame is None:
+            break
+
+        pose = tracker.detect(frame)
+        alert = presence_timer.check(pose is not None)
+
+        if pending is not None and pending.done():
+            sent = pending.result()
+            telegram_status = "SENT" if sent else "FAILED"
+            pending = None
+
+        if alert and not notified and pending is None:
+            pending = telegram.send_photo_async(
+                frame,
+                "Warning: person detected.",
+                key="security",
+            )
+            telegram_status = "QUEUED"
+            notified = True
+        elif not alert:
+            notified = False
+            telegram_status = "WAITING"
+
+        status = "PERSON DETECTED" if alert else "SAFE"
+        info = (
+            f"Security: {status} | Pose: {'YES' if pose else 'NO'} | "
+            f"Telegram: {telegram_status} | "
+            f"Loop FPS: {fps.read():.1f}"
+        )
+        print(f"\r{info:&lt;110}", end="", flush=True)
+
+        if telegram_status == "FAILED":
+            print(f"\nTelegram: {telegram.last_error}")
+            telegram_status = "ERROR SHOWN"
+except KeyboardInterrupt:
+    pass
+finally:
+    print()
+    camera.close()
+    tracker.close()
+    telegram.close()</code></pre>
+</div>
+    </div>
+  </div>
+</details></div>
+    <details class="example-card" id="telegram-person-security">
+      <summary>
+        <span class="number">18</span>
+        <span class="summary-text"><strong>Telegram Person Security</strong><small>Send a camera photo to Telegram when one or more people are detected.</small></span>
+        <span class="chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="example-content">
+        <div class="tabs" role="tablist" aria-label="Telegram Person Security mode">
+          <button type="button" role="tab" id="telegram-person-security-standard-tab"
+            aria-controls="telegram-person-security-standard" aria-selected="true"
+            class="tab active" data-target="telegram-person-security-standard">Standard / GUI</button>
+          <button type="button" role="tab" id="telegram-person-security-cli-tab"
+            aria-controls="telegram-person-security-cli" aria-selected="false" tabindex="-1"
+            class="tab" data-target="telegram-person-security-cli">CLI / Terminal</button>
+        </div>
+        <div id="telegram-person-security-standard" role="tabpanel"
+          aria-labelledby="telegram-person-security-standard-tab" class="panel">
+          <div class="code-shell">
+      <div class="code-bar">
+        <span>examples/18_telegram_person_security.py</span>
+        <button type="button" class="copy" data-copy aria-label="Copy examples/18_telegram_person_security.py">
+          <span aria-live="polite">Copy</span>
+        </button>
+      </div>
+        <pre tabindex="0"><code class="language-python">"""Example 18: send a Telegram photo when people are detected."""
 
 import cvgo as go
 
@@ -3497,37 +3679,38 @@ while True:
     for person in people:
         person.draw(frame, color=(0, 0, 255))
 
-    status = "PERSON DETECTED" if alert else "SAFE"
+    status = "PEOPLE DETECTED" if alert else "SAFE"
     color = (0, 0, 255) if alert else (0, 255, 0)
     go.put_text(frame, f"Status: {status}", color=color)
+    go.put_text(frame, f"Count: {len(people)}", (20, 70))
 
     if alert and not notified and pending is None:
         pending = telegram.send_photo_async(
             frame,
             f"Warning: {len(people)} person(s) detected.",
-            key="security",
+            key="person-security",
         )
 
     notified = alert
 
-    if not camera.show(frame, title="CVGO Telegram Security"):
+    if not camera.show(frame, title="CVGO Telegram Person Security"):
         break
 
 camera.close()
 detector.close()
 telegram.close()</code></pre>
-</div>
     </div>
-    <div id="telegram-security-cli" role="tabpanel"
-      aria-labelledby="telegram-security-cli-tab" class="panel" hidden>
-      <div class="code-shell">
-  <div class="code-bar">
-    <span>examples/cli/17_telegram_security.py</span>
-    <button type="button" class="copy" data-copy aria-label="Copy examples/cli/17_telegram_security.py">
-      <span aria-live="polite">Copy</span>
-    </button>
-  </div>
-  <pre tabindex="0"><code class="language-python">"""CLI example 17: send a Telegram photo when a person is detected."""
+        </div>
+        <div id="telegram-person-security-cli" role="tabpanel"
+          aria-labelledby="telegram-person-security-cli-tab" class="panel" hidden>
+          <div class="code-shell">
+      <div class="code-bar">
+        <span>examples/cli/18_telegram_person_security.py</span>
+        <button type="button" class="copy" data-copy aria-label="Copy examples/cli/18_telegram_person_security.py">
+          <span aria-live="polite">Copy</span>
+        </button>
+      </div>
+        <pre tabindex="0"><code class="language-python">"""CLI example 18: send a Telegram photo when people are detected."""
 
 import cvgo as go
 
@@ -3560,7 +3743,7 @@ try:
             pending = telegram.send_photo_async(
                 frame,
                 f"Warning: {len(people)} person(s) detected.",
-                key="security",
+                key="person-security",
             )
             telegram_status = "QUEUED"
             notified = True
@@ -3568,7 +3751,7 @@ try:
             notified = False
             telegram_status = "WAITING"
 
-        status = "PERSON DETECTED" if alert else "SAFE"
+        status = "PEOPLE DETECTED" if alert else "SAFE"
         info = (
             f"Security: {status} | People: {len(people)} | "
             f"Telegram: {telegram_status} | "
@@ -3586,6 +3769,230 @@ finally:
     camera.close()
     detector.close()
     telegram.close()</code></pre>
+    </div>
+        </div>
+      </div>
+    </details>
+<details class="example-card" id="mqtt-robot">
+  <summary>
+    <span class="number">19</span>
+    <span class="summary-text"><strong>MQTT Robot Status</strong><small>Publish pose status as JSON to an MQTT robot topic.</small></span>
+    <span class="chevron" aria-hidden="true"></span>
+  </summary>
+  <div class="example-content">
+    <div class="tabs" role="tablist" aria-label="MQTT Robot Status mode">
+      <button type="button" role="tab" id="mqtt-robot-standard-tab"
+        aria-controls="mqtt-robot-standard" aria-selected="true"
+        class="tab active" data-target="mqtt-robot-standard">Standard / GUI</button>
+      <button type="button" role="tab" id="mqtt-robot-cli-tab"
+        aria-controls="mqtt-robot-cli" aria-selected="false" tabindex="-1"
+        class="tab" data-target="mqtt-robot-cli">CLI / Terminal</button>
+    </div>
+    <div id="mqtt-robot-standard" role="tabpanel"
+      aria-labelledby="mqtt-robot-standard-tab" class="panel">
+      <div class="code-shell">
+  <div class="code-bar">
+    <span>examples/19_mqtt_robot.py</span>
+    <button type="button" class="copy" data-copy aria-label="Copy examples/19_mqtt_robot.py">
+      <span aria-live="polite">Copy</span>
+    </button>
+  </div>
+  <pre tabindex="0"><code class="language-python">"""Example 19: publish pose status to an MQTT robot topic."""
+
+import cvgo as go
+
+
+camera = go.Camera()
+tracker = go.PoseTracker(model_complexity=0)
+mqtt = go.MqttClient(host="localhost", client_id="cvgo-camera", connect=True)
+last_detected = None
+
+while True:
+    frame = camera.read()
+
+    if frame is None:
+        break
+
+    pose = tracker.detect(frame)
+    detected = pose is not None
+
+    if detected != last_detected:
+        mqtt.publish(
+            "robot/camera/pose",
+            {"person_detected": detected},
+        )
+        last_detected = detected
+
+    if pose:
+        pose.box(padding=30).draw(frame, label="Person")
+    go.put_text(frame, f"Person detected: {detected}")
+
+    if not camera.show(frame, title="CVGO MQTT Robot"):
+        break
+
+camera.close()
+tracker.close()
+mqtt.close()</code></pre>
+</div>
+    </div>
+    <div id="mqtt-robot-cli" role="tabpanel"
+      aria-labelledby="mqtt-robot-cli-tab" class="panel" hidden>
+      <div class="code-shell">
+  <div class="code-bar">
+    <span>examples/cli/19_mqtt_robot.py</span>
+    <button type="button" class="copy" data-copy aria-label="Copy examples/cli/19_mqtt_robot.py">
+      <span aria-live="polite">Copy</span>
+    </button>
+  </div>
+  <pre tabindex="0"><code class="language-python">"""CLI example 19: publish pose status to an MQTT robot topic."""
+
+import cvgo as go
+
+
+camera = go.Camera()
+tracker = go.PoseTracker(model_complexity=0)
+mqtt = go.MqttClient(host="localhost", client_id="cvgo-camera", connect=True)
+fps = go.FPS()
+last_detected = None
+
+try:
+    while True:
+        frame = camera.read()
+
+        if frame is None:
+            break
+
+        pose = tracker.detect(frame)
+        detected = pose is not None
+
+        if detected != last_detected:
+            mqtt.publish(
+                "robot/camera/pose",
+                {"person_detected": detected},
+            )
+            last_detected = detected
+
+        info = (
+            f"MQTT: {'DETECTED' if detected else 'CLEAR'} | "
+            f"FPS: {fps.read():.1f}"
+        )
+        print(f"\r{info:&lt;70}", end="", flush=True)
+except KeyboardInterrupt:
+    pass
+finally:
+    print()
+    camera.close()
+    tracker.close()
+    mqtt.close()</code></pre>
+</div>
+    </div>
+  </div>
+</details>
+<details class="example-card" id="websocket-robot">
+  <summary>
+    <span class="number">20</span>
+    <span class="summary-text"><strong>WebSocket Robot Status</strong><small>Send pose status as JSON to a WebSocket robot service.</small></span>
+    <span class="chevron" aria-hidden="true"></span>
+  </summary>
+  <div class="example-content">
+    <div class="tabs" role="tablist" aria-label="WebSocket Robot Status mode">
+      <button type="button" role="tab" id="websocket-robot-standard-tab"
+        aria-controls="websocket-robot-standard" aria-selected="true"
+        class="tab active" data-target="websocket-robot-standard">Standard / GUI</button>
+      <button type="button" role="tab" id="websocket-robot-cli-tab"
+        aria-controls="websocket-robot-cli" aria-selected="false" tabindex="-1"
+        class="tab" data-target="websocket-robot-cli">CLI / Terminal</button>
+    </div>
+    <div id="websocket-robot-standard" role="tabpanel"
+      aria-labelledby="websocket-robot-standard-tab" class="panel">
+      <div class="code-shell">
+  <div class="code-bar">
+    <span>examples/20_websocket_robot.py</span>
+    <button type="button" class="copy" data-copy aria-label="Copy examples/20_websocket_robot.py">
+      <span aria-live="polite">Copy</span>
+    </button>
+  </div>
+  <pre tabindex="0"><code class="language-python">"""Example 20: send pose status to a WebSocket robot service."""
+
+import cvgo as go
+
+
+camera = go.Camera()
+tracker = go.PoseTracker(model_complexity=0)
+websocket = go.WebSocketClient("ws://localhost:8080", connect=True)
+last_detected = None
+
+while True:
+    frame = camera.read()
+
+    if frame is None:
+        break
+
+    pose = tracker.detect(frame)
+    detected = pose is not None
+
+    if detected != last_detected:
+        websocket.send({"person_detected": detected})
+        last_detected = detected
+
+    if pose:
+        pose.box(padding=30).draw(frame, label="Person")
+    go.put_text(frame, f"Person detected: {detected}")
+
+    if not camera.show(frame, title="CVGO WebSocket Robot"):
+        break
+
+camera.close()
+tracker.close()
+websocket.close()</code></pre>
+</div>
+    </div>
+    <div id="websocket-robot-cli" role="tabpanel"
+      aria-labelledby="websocket-robot-cli-tab" class="panel" hidden>
+      <div class="code-shell">
+  <div class="code-bar">
+    <span>examples/cli/20_websocket_robot.py</span>
+    <button type="button" class="copy" data-copy aria-label="Copy examples/cli/20_websocket_robot.py">
+      <span aria-live="polite">Copy</span>
+    </button>
+  </div>
+  <pre tabindex="0"><code class="language-python">"""CLI example 20: send pose status to a WebSocket robot service."""
+
+import cvgo as go
+
+
+camera = go.Camera()
+tracker = go.PoseTracker(model_complexity=0)
+websocket = go.WebSocketClient("ws://localhost:8080", connect=True)
+fps = go.FPS()
+last_detected = None
+
+try:
+    while True:
+        frame = camera.read()
+
+        if frame is None:
+            break
+
+        pose = tracker.detect(frame)
+        detected = pose is not None
+
+        if detected != last_detected:
+            websocket.send({"person_detected": detected})
+            last_detected = detected
+
+        info = (
+            f"WebSocket: {'DETECTED' if detected else 'CLEAR'} | "
+            f"FPS: {fps.read():.1f}"
+        )
+        print(f"\r{info:&lt;70}", end="", flush=True)
+except KeyboardInterrupt:
+    pass
+finally:
+    print()
+    camera.close()
+    tracker.close()
+    websocket.close()</code></pre>
 </div>
     </div>
   </div>
@@ -3612,7 +4019,7 @@ finally:
 
   <footer>
     <div class="wrap">
-      <span>CVGO 0.2.1 · MIT License</span>
+      <span>CVGO 0.3.0 · MIT License</span>
       <a href="https://kelasrobot.com">kelasrobot.com</a>
     </div>
   </footer>

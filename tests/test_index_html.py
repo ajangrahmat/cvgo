@@ -77,15 +77,29 @@ class TestIndexHTML(unittest.TestCase):
                 for path in sorted(directory.glob("[0-9][0-9]_*.py"))
             )
 
-        self.assertEqual(self.parser.details, 17)
-        self.assertGreaterEqual(len(self.parser.python_blocks), 34)
+        self.assertEqual(self.parser.details, 20)
+        self.assertGreaterEqual(len(self.parser.python_blocks), 40)
         self.assertEqual(
             self.parser.copy_buttons,
             self.parser.code_blocks,
         )
 
+        def normalize_example(value):
+            lines = value.strip().splitlines()
+            indents = [
+                len(line) - len(line.lstrip())
+                for line in lines[1:]
+                if line.strip()
+            ]
+            padding = min(indents, default=0)
+            return "\n".join(
+                line if index == 0 else line[padding:]
+                for index, line in enumerate(lines)
+            )
+
+        embedded = [normalize_example(block) for block in self.parser.python_blocks]
         for example in expected:
-            self.assertIn(example, self.parser.python_blocks)
+            self.assertIn(normalize_example(example), embedded)
 
     def test_advanced_parameters_are_complete_and_copyable(self):
         self.assertEqual(self.parser.api_details, 10)
@@ -144,7 +158,7 @@ class TestIndexHTML(unittest.TestCase):
                 self.assertIn(link, targets)
 
     def test_version_and_diagnostics_are_current(self):
-        self.assertIn("CVGO 0.2.1", self.source)
+        self.assertIn("CVGO 0.3.0", self.source)
         self.assertIn("python -m cvgo check --camera 4", self.source)
         self.assertNotIn("CVGO 0.2.0", self.source)
 

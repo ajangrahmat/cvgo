@@ -1,4 +1,4 @@
-"""Regression tests untuk peningkatan CVGO 0.2.1."""
+"""Regression tests for CVGO 0.3.0 improvements."""
 
 import hashlib
 import io
@@ -114,7 +114,7 @@ class TestModelIntegrity(unittest.TestCase):
             self.assertEqual(result.read_bytes(), good)
             urlopen.assert_called_once()
             request = urlopen.call_args.args[0]
-            self.assertEqual(request.get_header("User-agent"), "CVGO/0.2.1")
+            self.assertEqual(request.get_header("User-agent"), "CVGO/0.3.0")
 
 
 class TestAsyncOutput(unittest.TestCase):
@@ -133,7 +133,7 @@ class TestAsyncOutput(unittest.TestCase):
             telegram.close()
 
         request = urlopen.call_args.args[0]
-        self.assertEqual(request.get_header("User-agent"), "CVGO/0.2.1")
+        self.assertEqual(request.get_header("User-agent"), "CVGO/0.3.0")
         with self.assertRaisesRegex(RuntimeError, "ditutup"):
             telegram.send_message_async("terlambat")
 
@@ -172,7 +172,7 @@ class TestDiagnosticsAndValidation(unittest.TestCase):
         root = Path(__file__).parents[1]
         config = (root / "pyproject.toml").read_text(encoding="utf-8")
 
-        self.assertEqual(go.__version__, "0.2.1")
+        self.assertEqual(go.__version__, "0.3.0")
         self.assertIn('dynamic = ["version"]', config)
         self.assertIn('attr = "cvgo._version.__version__"', config)
 
@@ -190,14 +190,14 @@ class TestDiagnosticsAndValidation(unittest.TestCase):
         ):
             info = go.system_info()
 
-        self.assertEqual(info["cvgo"], "0.2.1")
+        self.assertEqual(info["cvgo"], "0.3.0")
         self.assertTrue(all(
             item["ok"] for item in info["dependencies"].values()
         ))
 
     def test_cli_json_can_include_camera_check(self):
         info = {
-            "cvgo": "0.2.1",
+            "cvgo": "0.3.0",
             "python": "3.11.9",
             "python_supported": True,
             "implementation": "CPython",

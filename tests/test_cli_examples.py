@@ -27,6 +27,9 @@ EXPECTED_EXAMPLES = {
             "holistic_tracking",
             "selfie_segmentation",
             "telegram_security",
+            "telegram_person_security",
+            "mqtt_robot",
+            "websocket_robot",
         ),
         start=1,
     )
