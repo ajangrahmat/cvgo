@@ -78,6 +78,9 @@ class TestIndexHTML(unittest.TestCase):
             )
 
         self.assertEqual(self.parser.details, 20)
+        self.assertIn("40 complete, copy-ready examples.", self.source)
+        for topic in ("telegram-person-security", "mqtt-robot", "websocket-robot"):
+            self.assertIn(f'href="#{topic}"', self.source)
         self.assertGreaterEqual(len(self.parser.python_blocks), 40)
         self.assertEqual(
             self.parser.copy_buttons,
