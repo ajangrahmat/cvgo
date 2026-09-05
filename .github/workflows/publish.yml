@@ -37,6 +37,7 @@ jobs:
 
       - name: Build distributions
         run: |
+          rm -rf build dist
           python -m build
           python -m twine check dist/*
 
